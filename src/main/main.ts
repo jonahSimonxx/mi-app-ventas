@@ -1,5 +1,10 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, session } from 'electron';
 import path from 'path';
+import { startDbBridge, stopDbBridge } from './dbBridge';
+
+// Fuerza conexión directa sin proxy del sistema (Psiphon/VPN no debe interferir).
+app.commandLine.appendSwitch('no-proxy-server');
+app.commandLine.appendSwitch('no-sandbox');
 
 // Carga las variables de entorno desde .env (credenciales de BD, etc.).
 try {
@@ -30,18 +35,21 @@ let connection: Connection | null = null;
 
 async function initDatabase() {
   try {
+    // Electron ligado por ESET: abre socket TCP local y el bridge se conecta a la nube.
+    const bridgePort = await startDbBridge();
     connection = await createConnection({
       type: 'postgres',
-      host: process.env.DB_HOST || 'localhost',
-      port: Number(process.env.DB_PORT) || 5432,
+      host: '127.0.0.1',
+      port: bridgePort,
       username: process.env.DB_USER || 'postgres',
       password: process.env.DB_PASSWORD || '1234',
       database: process.env.DB_NAME || 'mi-app-ventas-data-base',
       entities: [Producto, Moneda, Cuenta, Envio, ProductoEnvio, Transaccion, TasaCambioHistorico],
-      synchronize: false,
+      synchronize: true,
+      ssl: false,
       logging: true,
     });
-    console.log('✅ Base de datos conectada');
+    console.log('✅ Base de datos conectada vía bridge local (puerto ' + bridgePort + ')');
   } catch (error) {
     console.error('❌ Error en la base de datos:', error);
     connection = null;
@@ -265,11 +273,17 @@ async function createWindow() {
 }
 
 app.whenReady().then(async () => {
+  try {
+    await session.defaultSession.setProxy({ proxyRules: 'direct://' });
+  } catch {
+    console.warn('⚠️ No se pudo forzar proxy directo; se usará la configuración del sistema.');
+  }
   await createWindow();
 });
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
+    stopDbBridge();
     app.quit();
   }
 });

@@ -1,135 +1,159 @@
-# Mi App de Ventas 🚀
+# Mi App de Ventas - Contexto del Proyecto
 
-Una aplicación de **Electron + React + TypeScript + PostgreSQL** para gestionar ventas, cuentas, envíos y transacciones con conversión de monedas.
+## Descripción General
+Aplicación de escritorio para gestión de ventas, inventario y finanzas personales.
+Orientada al negocio de importación y venta de artículos desde/para Cuba.
 
-## 📌 Contexto General
+## Stack Tecnológico
+- **Frontend**: React 19 + TypeScript + Vite + Tailwind CSS + Recharts
+- **Backend**: Electron 41 + Node.js
+- **Base de datos**: PostgreSQL (TypeORM 0.3)
 
-- **Propósito**: Gestionar mis cuentas personales (CoinEx, QvaPay, MPay), productos, envíos y transacciones, con un enfoque en la conversión de monedas (USD, CUP, EUR).
+## Modelos de Negocio
 
-- **Tecnologías**:
+### 1. Importación de Artículos
+- **Proveedor**: WeShipYou (casillero virtual en EE.UU.)
+- **Flujo**: Compra en EE.UU. → Envío a casillero → Envío a Cuba → Recepción
+- **Datos por envío**: Peso (lbs), cantidad de artículos, costo de envío, aranceles USD, estado (pendiente/recibido)
+- **Relación**: Cada envío contiene múltiples productos (ProductoEnvio)
 
-  - Frontend: React + TypeScript + Vite + Tailwind CSS + Recharts (gráficos).
+### 2. Ventas en Cuba
+- **Plataforma**: Revolico
+- **Flujo**: Cliente escribe → Negociación → Venta → Pago
+- **Formas de pago del cliente**:
+  1. CUP en efectivo
+  2. CUP por transferencia bancaria
+  3. USD en efectivo
+  4. USDT
 
-  - Backend: Electron + Node.js.
+### 3. Recarga de Tarjetas en el Exterior
+- **Exchange**: QvaPay
+- **Tarjetas**: MyPal, MPay
+- **Problema**: Las recargas se hacen con cripto debido a sanciones a Cuba
+- **Flujo CUP → USD** (el más complejo):
+  - Opción A: CUP cash → Comprar USD al mercado negro → Peer QvaPay cambia USD por USDT
+  - Opción B: CUP transferencia → Peer cambia por CUP cash (cobran ~10%) → Comprar USD → Peer USD→USDT
+  - Opción C: CUP transferencia → Peer cambia directo por USDT (caro)
 
-  - Base de datos: PostgreSQL (acceso vía TypeORM).
+## Entidades de la Base de Datos
 
-## 💱 Gestión de Tasas de Cambio
+### Moneda
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| codigo | VARCHAR(5) PK | USD, CUP, USDT |
+| nombre | VARCHAR(50) | Nombre completo |
+| tasa_cambio | NUMERIC(10,4) | Tasa en CUP |
 
-Las tasas de cambio se gestionan **manualmente** (no se usa ninguna API externa).
+### Cuenta
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| id_cuenta | NUMERIC PK | ID fijo (1-6) |
+| nombre | VARCHAR(50) | Nombre de la cuenta |
+| saldo | NUMERIC(15,2) | Saldo actual |
+| codigo_moneda | FK → Moneda | Moneda de la cuenta |
 
-- **Servicio**: `src/main/services/tasaCambioService.ts` expone:
-  - `getTasaActual(codigo_moneda)`: tasa actual desde la tabla `Moneda`.
-  - `getTasaPorFecha(fecha, codigo_moneda)`: tasa en una fecha desde `tasa_cambio_historico`.
-  - `getTasasHistoricas()`: todo el histórico.
-  - `agregarTasaManual(tasa)`: alta/edición manual de una tasa (también sincroniza USD en `Moneda`).
-  - `importarTasasDesdeExcel(filePath)`: importa tasas desde un Excel (`xlsx`).
-- **UI**: `src/renderer/components/TasaCambioModal.tsx` (formulario manual, importar Excel,
-  tabla de histórico y gráfico de variación USD → CUP con Recharts). Se abre desde el botón
-  "Tasas de Cambio" en el encabezado de `App.tsx`, que también muestra la tasa USD → CUP actual.
+**Cuentas predefinidas**:
+1. Efectivo USD
+2. Efectivo CUP
+3. CUP Transferencia
+4. Saldo Coinex
+5. Saldo QvaPay
+6. Saldo MPay
 
-## 🗃 Estructura de la Base de Datos
+### Producto
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| id_prod | VARCHAR(50) PK | ID del producto |
+| nombre_prod | VARCHAR(100) | Nombre |
+| descripcion | VARCHAR(255) | Descripción (opcional) |
+| costo | NUMERIC(10,2) | Costo en USD |
+| precio_venta | NUMERIC(10,2) | Precio venta en USD |
+| stock_actual | NUMERIC(10,2) | Stock (≥0) |
 
-### Entidades y Relaciones
+### Envío
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| id | SERIAL PK | Autoincremental |
+| proveedor | VARCHAR(100) | Default: WeShipYou |
+| costo | NUMERIC(15,2) | Costo del envío |
+| aranceles_usd | NUMERIC(15,2) | Aranceles en USD |
+| peso_total_lbs | NUMERIC(15,2) | Peso en libras |
+| fecha_creacion | TIMESTAMP | Auto |
+| fecha_recepcion | TIMESTAMP | Nullable |
+| estado | VARCHAR(20) | pendiente/recibido |
 
-| Entidad | Descripción | Relaciones |
-|---------|-------------|------------|
-| **Cuenta** | Mis cuentas personales (ej: CoinEx, QvaPay). | Tiene transacciones (origen/destino). |
-| **Moneda** | Monedas (USD, CUP, EUR) y su tasa de cambio actual. | Usada en Cuenta, Producto, Transaccion. |
-| **Producto** | Productos que compró/vendó (con costo, precio de venta, stock). | Relacionada con ProductoEnvio. |
-| **Envio** | Envíos de productos (con proveedores, costos, aranceles). | Relacionada con ProductoEnvio y Cuenta (proveedor). |
-| **ProductoEnvio** | Relación muchos a muchos entre Envio y Producto. | Vincula productos a envíos. |
-| **Transaccion** | Movimientos de dinero entre cuentas (transferencias, compras, ventas, envíos). | Relacionada con Cuenta (origen/destino) y Envio. |
-| **tasa_cambio_historico** | Histórico de tasas de cambio (ingresadas manualmente o desde Excel). | - |
+### ProductoEnvio
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| id | NUMERIC PK | ID |
+| envio_id | FK → Envío | Envío asociado |
+| producto_id | FK → Producto | Producto asociado |
+| cantidad | INT | Cantidad de unidades |
+| precio_unitario | NUMERIC | Precio unitario |
 
-### Diagrama ER
+### Transacción
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| id_trans | NUMERIC PK | ID |
+| cuenta_origen_id | FK → Cuenta | Cuenta origen |
+| cuenta_destino_id | FK → Cuenta | Cuenta destino |
+| monto_origen | NUMERIC(15,2) | Monto en moneda origen |
+| monto_destino | NUMERIC(15,2) | Monto en moneda destino |
+| tasa_cambio | NUMERIC(10,4) | Tasa aplicada |
+| comision | NUMERIC(15,2) | Comisión cobrada |
+| tipo | VARCHAR(50) | transferencia/venta/compra/envío |
+| fecha | TIMESTAMP | Fecha de la transacción |
+| descripcion | VARCHAR(255) | Descripción |
 
-```mermaid
-erDiagram
-    CUENTA ||--o{ TRANSACCION : realiza
-    CUENTA ||--o{ ENVIO : proveedor
-    PRODUCTO ||--o{ PRODUCTO_ENVIO : incluye
-    ENVIO ||--o{ PRODUCTO_ENVIO : contiene
-    MONEDA ||--o{ CUENTA : usa
-    MONEDA ||--o{ PRODUCTO : usa
-    MONEDA ||--o{ TRANSACCION : usa
+### tasa_cambio_historico
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| id | SERIAL PK | Auto |
+| fecha | DATE UNIQUE | Fecha |
+| usd_to_cup | NUMERIC(10,4) | Tasa USD → CUP |
+| eur_to_cup | NUMERIC(10,4) | Tasa EUR → CUP (opcional) |
+| gbp_to_cup | NUMERIC(10,4) | Tasa GBP → CUP ( opcional) |
+| fuente | VARCHAR(20) | manual/excel |
+| created_at | TIMESTAMP | Auto |
 
-    CUENTA {
-        int id_cuenta PK
-        string nombre
-        decimal saldo
-        string codigo_moneda FK
-    }
+## Estado Actual de la App
 
-    MONEDA {
-        string codigo PK
-        string nombre
-        decimal tasa_cambio
-    }
+### ✅ Implementado
+- CRUD Productos (UI + Backend)
+- CRUD Monedas (UI + Backend)
+- CRUD Tasas de Cambio (UI + Backend)
+- Gestión de tasas manuales e importación Excel
+- Gráfico histórico de tasas
+- Conexión TypeORM a PostgreSQL vía Supabase (bridge `dbBridge.ts` resuelve EACCES de ESET)
 
-    PRODUCTO {
-        string id_prod PK
-        string nombre_prod
-        string descripcion
-        decimal costo
-        decimal precio_venta
-        int stock_actual
-        string moneda
-    }
+### ⚠️ Parcial
+- Cuentas: Entity definida, solo lectura, falta CuentaModal
 
-    ENVIO {
-        int id PK
-        int proveedor FK
-        decimal costo
-        decimal aranceles_usd
-        decimal peso_total_lbs
-        date fecha_creacion
-        date fecha_recepcion
-        string estado
-    }
+### ❌ No implementado
+- Envíos: Entity definida, sin handlers IPC ni UI
+- ProductoEnvio: Entity incompleta (faltan campos)
+- Transacciones: Entity definida, sin handlers IPC ni UI
 
-    PRODUCTO_ENVIO {
-        int id PK
-        int envio FK
-        string producto FK
-        int cantidad
-        decimal precio_unitario
-    }
+## Bugs Conocidos
+1. Tabla Cuentas en App.tsx muestra columnas "Tipo" y "Telefono" que no existen
+2. Botón "+ Nueva Cuenta" no abre modal (falta CuentaModal)
+3. ProductoEnvio le faltan campos: cantidad, precio_unitario
+4. Transaccion le falta campo: descripcion
+5. database.ts está vacío (todo está en main.ts)
 
-    TRANSACCION {
-        int id_trans PK
-        int cuenta_origen_id FK
-        int cuenta_destino_id FK
-        decimal monto_origen
-        decimal monto_destino
-        decimal tasa_cambio
-        decimal comision
-        string tipo
-        date fecha
-        string descripcion
-    }
+## 💡 Conexión a Supabase vía Bridge (resuelto EACCES de Electron)
 
-    TASA_CAMBIO_HISTORICO {
-        int id PK
-        date fecha UK
-        decimal usd_to_cup
-        decimal eur_to_cup
-        decimal gbp_to_cup
-        string fuente
-        timestamp created_at
-    }
-```
+**Problema**: ESET Endpoint Antivirus bloquea sockets TCP externos del binario `electron.exe` (EACCES), mientras que `node.exe` sí puede conectarse a Supabase.
 
-### DDL: tasa_cambio_historico
+**Solución implementada** (`src/main/dbBridge.ts`):
+- Electron ya NO se conecta directamente a la nube; abre un socket local `127.0.0.1` en un puerto aleatorio (5433-6533).
+- `dbBridge` spawnea `node.exe` (C:\Program Files\nodejs\node.exe, configurable con env `NODE_BIN`) que ejecuta un script TCP puro.
+- El script responde al protocolo Postgres: envía `SSLRequest` (PgBouncer de Supabase lo exige antes de TLS), hace upgrade a TLS con `rejectUnauthorized: false`, y reenvía bytes en ambas direcciones.
+- `main.ts` usa `host: '127.0.0.1'`, `ssl: false` (el TLS lo maneja el bridge hacia la nube).
+- El bridge se cierra con `stopDbBridge()` al salir de la app.
 
-```sql
-CREATE TABLE tasa_cambio_historico (
-    id SERIAL PRIMARY KEY,
-    fecha DATE NOT NULL UNIQUE,  -- Evitar duplicados por fecha
-    usd_to_cup DECIMAL(10, 4) NOT NULL,
-    eur_to_cup DECIMAL(10, 4),
-    gbp_to_cup DECIMAL(10, 4),
-    fuente VARCHAR(20) DEFAULT 'manual',  -- 'manual' o 'excel'
-    created_at TIMESTAMP DEFAULT NOW()
-);
-```
+**Verificado**: `SELECT 1` OK desde Electron vía bridge (puerto 6146), y `npm run build` compila limpio.
+
+## Dependencias No Usadas
+- axios (instalado, no importado)
+- cheerio (instalado, no importado)

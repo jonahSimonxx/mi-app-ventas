@@ -8,7 +8,7 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-} from 'recharts/esm';
+} from 'recharts';
 import { TasaCambioHistorico } from '../../shared/entities/TasaCambioHistorico';
 
 interface TasaCambioModalProps {
