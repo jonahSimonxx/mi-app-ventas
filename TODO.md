@@ -198,6 +198,8 @@
 ## Fase 8: Mejoras y Optimización
 
 - [ ] Migrar lógica de main.ts a servicios modulares
+- [ ] **Todos los IDs deben generarse automáticamente al crear registros (evitar entrada manual)**
+- [ ] **Al crear un producto, el stock debe inicializarse con valor 0.00 por defecto**
 - [ ] Eliminar dependencias no usadas (axios, cheerio)
 - [ ] Agregar validaciones en forms
 - [ ] Agregar búsqueda en tablas
