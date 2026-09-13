@@ -29,8 +29,14 @@ const App: React.FC = () => {
   // ========== ESTADO PARA TASAS DE CAMBIO ==========
   const [isTasaModalOpen, setIsTasaModalOpen] = useState(false);
 
+  // ========== ESTADO PARA ENVIOS ==========
+  const [envios, setEnvios] = useState<Envio[]>([]);
+  const [isEnvioModalOpen, setIsEnvioModalOpen] = useState(false);
+  const [envioEditar, setEnvioEditar] = useState<Partial<Envio> | null>(null);
+  const [productosEnvio, setProductosEnvio] = useState<ProductoEnvio[]>([]);
+
   // ========== PESTAÑA ACTIVA ==========
-  const [activeTab, setActiveTab] = useState<'productos' | 'monedas' | 'cuentas'>('productos');
+  const [activeTab, setActiveTab] = useState<'productos' | 'monedas' | 'cuentas' | 'envios'>('productos');
 
   // ========== FUNCIONES PARA PRODUCTOS ==========
   const fetchProductos = async () => {
