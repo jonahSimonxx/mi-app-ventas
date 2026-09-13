@@ -1,6 +1,8 @@
 import { Producto } from '../shared/entities/Producto';
 import { Moneda } from '../shared/entities/Moneda';
 import { Cuenta } from '../shared/entities/Cuenta';
+import { Envio } from '../shared/entities/Envio';
+import { ProductoEnvio } from '../shared/entities/ProductoEnvio';
 import { TasaCambioHistorico } from '../shared/entities/TasaCambioHistorico';
 
 export interface TasaCambioManual {
@@ -26,6 +28,18 @@ export interface ElectronAPI {
   createCuenta: (cuenta: Partial<Cuenta>) => Promise<Cuenta>;
   updateCuenta: (id: string, cuenta: Partial<Cuenta>) => Promise<Cuenta | null>;
   deleteCuenta: (id: string) => Promise<boolean>;
+
+  // Handlers de Envio
+  getEnvios: () => Promise<Envio[]>;
+  createEnvio: (envio: Partial<Envio>) => Promise<Envio>;
+  updateEnvio: (id: number, envio: Partial<Envio>) => Promise<Envio | null>;
+  deleteEnvio: (id: number) => Promise<boolean>;
+  getEnvioById: (id: number) => Promise<Envio | null>;
+
+  // Handlers de ProductoEnvio
+  getProductosEnvio: (envioId: number) => Promise<ProductoEnvio[]>;
+  addProductoEnvio: (envioId: number, productoId: string, cantidad: number, precioUnitario: number) => Promise<ProductoEnvio>;
+  removeProductoEnvio: (id: number) => Promise<boolean>;
 
   getTasaActual: (codigo: string) => Promise<number>;
   getTasaPorFecha: (fecha: string, codigo: string) => Promise<number>;

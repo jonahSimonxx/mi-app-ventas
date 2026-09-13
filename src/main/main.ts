@@ -191,6 +191,112 @@ ipcMain.handle('delete-cuenta', async (_, id: string) => {
   }
 });
 
+
+  // ========== HANDLERS DE ENVIO ==========
+ipcMain.handle('get-envios', async () => {
+  try {
+    const repo = connection!.getRepository(Envio);
+    return await repo.find({ relations: ['productos', 'productos.producto'] });
+  } catch (error) {
+    console.error('❌ Error al obtener envíos:', error);
+    return [];
+  }
+});
+
+ipcMain.handle('create-envio', async (_, envioData) => {
+  try {
+    const repo = connection!.getRepository(Envio);
+    const nuevoEnvio = repo.create(envioData as Envio);
+    await repo.save(nuevoEnvio);
+    return nuevoEnvio;
+  } catch (error) {
+    console.error('❌ Error al crear envío:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('update-envio', async (_, id, envioData) => {
+  try {
+    const repo = connection!.getRepository(Envio);
+    await repo.update(id, envioData);
+    return await repo.findOne({ where: { id }, relations: ['productos'] });
+  } catch (error) {
+    console.error('❌ Error al actualizar envío:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('delete-envio', async (_, id) => {
+  try {
+    const repo = connection!.getRepository(Envio);
+    await repo.delete(id);
+    return true;
+  } catch (error) {
+    console.error('❌ Error al eliminar envío:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('get-envio-by-id', async (_, id) => {
+  try {
+    const repo = connection!.getRepository(Envio);
+    return await repo.findOne({ where: { id }, relations: ['productos', 'productos.producto'] });
+  } catch (error) {
+    console.error('❌ Error al obtener envío por ID:', error);
+    return null;
+  }
+});
+
+// ========== HANDLERS DE PRODUCTOENVIO ==========
+ipcMain.handle('get-productos-envio', async (_, envioId) => {
+  try {
+    const repo = connection!.getRepository(ProductoEnvio);
+    return await repo.find({ where: { envio: { id: envioId } }, relations: ['producto'] });
+  } catch (error) {
+    console.error('❌ Error al obtener productos del envío:', error);
+    return [];
+  }
+});
+
+ipcMain.handle('add-producto-envio', async (_, envioId, productoId, cantidad, precioUnitario) => {
+  try {
+    const repo = connection!.getRepository(ProductoEnvio);
+    const envioRepo = connection!.getRepository(Envio);
+    const productoRepo = connection!.getRepository(Producto);
+    
+    const envio = await envioRepo.findOne({ where: { id: envioId } });
+    const producto = await productoRepo.findOne({ where: { id_prod: productoId } });
+    
+    if (!envio || !producto) {
+      throw new Error('Envio o Producto no encontrado');
+    }
+    
+    const nuevoProductoEnvio = repo.create({
+      envio,
+      producto,
+      cantidad,
+      precio_unitario: precioUnitario,
+    } as ProductoEnvio);
+    
+    await repo.save(nuevoProductoEnvio);
+    return nuevoProductoEnvio;
+  } catch (error) {
+    console.error('❌ Error al agregar producto al envío:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('remove-producto-envio', async (_, id) => {
+  try {
+    const repo = connection!.getRepository(ProductoEnvio);
+    await repo.delete(id);
+    return true;
+  } catch (error) {
+    console.error('❌ Error al eliminar producto del envío:', error);
+    throw error;
+  }
+});
+
 // ========== HANDLERS DE TASAS DE CAMBIO ==========
 ipcMain.handle('get-tasa-actual', async (_, codigo_moneda: string) => {
   try {

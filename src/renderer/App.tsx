@@ -3,9 +3,12 @@ import ProductoModal from './components/ProductoModal';
 import MonedaModal from './components/MonedaModal';
 import TasaCambioModal from './components/TasaCambioModal';
 import CuentaModal from './components/CuentaModal';
+import EnvioModal from './components/EnvioModal';
 import { Producto } from '../shared/entities/Producto';
 import { Moneda } from '../shared/entities/Moneda';
 import { Cuenta } from '../shared/entities/Cuenta';
+import { Envio } from '../shared/entities/Envio';
+import { ProductoEnvio } from '../shared/entities/ProductoEnvio';
 
 const App: React.FC = () => {
   // ========== ESTADO PARA PRODUCTOS ==========
@@ -116,7 +119,86 @@ const App: React.FC = () => {
     setIsCuentaModalOpen(true);
   };
 
-  // ========== CARGAR DATOS AL CAMBIAR DE PESTAÑA ==========
+  
+  // ========== FUNCIONES PARA ENVIOS ==========
+  const fetchEnvios = async () => {
+    const data = await window.electronAPI.getEnvios();
+    setEnvios(data);
+  };
+
+  const handleCreateEnvio = async (envio: Partial<Envio>, productosEnvio: any[]) => {
+    try {
+      const nuevoEnvio = await window.electronAPI.createEnvio(envio);
+      
+      // Crear ProductoEnvio para cada producto
+      for (const pe of productosEnvio) {
+        await window.electronAPI.addProductoEnvio(
+          nuevoEnvio.id,
+          pe.producto.id_prod,
+          pe.cantidad,
+          pe.precio_unitario
+        );
+      }
+      
+      fetchEnvios();
+      setIsEnvioModalOpen(false);
+    } catch (error) {
+      console.error('Error al crear envío:', error);
+    }
+  };
+
+  const handleUpdateEnvio = async (id: number, envio: Partial<Envio>, productosEnvio: any[]) => {
+    try {
+      await window.electronAPI.updateEnvio(id, envio);
+      
+      // Eliminar productos existentes y volver a crear
+      const productosExistentes = await window.electronAPI.getProductosEnvio(id);
+      for (const pe of productosExistentes) {
+        await window.electronAPI.removeProductoEnvio(pe.id);
+      }
+      
+      // Crear nuevos ProductoEnvio
+      for (const pe of productosEnvio) {
+        await window.electronAPI.addProductoEnvio(
+          id,
+          pe.producto.id_prod,
+          pe.cantidad,
+          pe.precio_unitario
+        );
+      }
+      
+      fetchEnvios();
+      setIsEnvioModalOpen(false);
+    } catch (error) {
+      console.error('Error al actualizar envío:', error);
+    }
+  };
+
+  const handleDeleteEnvio = async (id: number) => {
+    if (window.confirm('¿Estás seguro de eliminar este envío?')) {
+      try {
+        // Eliminar productos del envío primero
+        const productosExistentes = await window.electronAPI.getProductosEnvio(id);
+        for (const pe of productosExistentes) {
+          await window.electronAPI.removeProductoEnvio(pe.id);
+        }
+        
+        await window.electronAPI.deleteEnvio(id);
+        fetchEnvios();
+      } catch (error) {
+        console.error('Error al eliminar envío:', error);
+      }
+    }
+  };
+
+  const openEditEnvioModal = async (envio: Envio) => {
+    setEnvioEditar(envio);
+    const productosEnvioData = await window.electronAPI.getProductosEnvio(envio.id);
+    setProductosEnvio(productosEnvioData);
+    setIsEnvioModalOpen(true);
+  };
+
+// ========== CARGAR DATOS AL CAMBIAR DE PESTAÑA ==========
   useEffect(() => {
     if (activeTab === 'productos') {
       fetchProductos();
@@ -124,6 +206,8 @@ const App: React.FC = () => {
       fetchMonedas();
     } else if (activeTab === 'cuentas') {
       fetchCuentas();
+    } else if (activeTab === 'envios') {
+      fetchEnvios();
     }
   }, [activeTab]);
 
@@ -194,6 +278,16 @@ const App: React.FC = () => {
           }`}
         >
           Cuentas
+        </button>
+        <button
+          onClick={() => setActiveTab('envios')}
+          className={`pb-2 px-4 font-medium ${
+            activeTab === 'envios'
+              ? 'border-b-2 border-blue-600 text-blue-600'
+              : 'text-gray-500'
+          }`}
+        >
+          Envíos
         </button>
       </div>
 
@@ -409,6 +503,80 @@ const App: React.FC = () => {
               }}
               cuentaEditar={cuentaEditar}
               monedas={monedas}
+            />
+          </>
+        )}
+
+        {/* ========== PESTAÑA ENVIOS ========== */}
+        {activeTab === 'envios' && (
+          <>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Envíos</h2>
+              <button
+                onClick={() => {
+                  setEnvioEditar(null);
+                  setProductosEnvio([]);
+                  setIsEnvioModalOpen(true);
+                }}
+                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+              >
+                + Nuevo Envío
+              </button>
+            </div>
+
+            <table className="min-w-full mt-2 border">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="p-2 border">ID</th>
+                  <th className="p-2 border">Proveedor</th>
+                  <th className="p-2 border">Peso (lbs)</th>
+                  <th className="p-2 border">Costo (USD)</th>
+                  <th className="p-2 border">Aranceles (USD)</th>
+                  <th className="p-2 border">Estado</th>
+                  <th className="p-2 border">Fecha Creación</th>
+                  <th className="p-2 border">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {envios.map((e) => (
+                  <tr key={e.id} className={e.estado === 'recibido' ? 'bg-green-50' : 'bg-yellow-50'}>
+                    <td className="p-2 border">{e.id}</td>
+                    <td className="p-2 border">{e.proveedor}</td>
+                    <td className="p-2 border">{e.peso_total_lbs}</td>
+                    <td className="p-2 border">${e.costo.toFixed(2)}</td>
+                    <td className="p-2 border">${e.aranceles_usd.toFixed(2)}</td>
+                    <td className="p-2 border">
+                      <span className={`px-2 py-1 rounded text-xs ${e.estado === 'recibido' ? 'bg-green-200 text-green-800' : 'bg-yellow-200 text-yellow-800'}`}>
+                        {e.estado}
+                      </span>
+                    </td>
+                    <td className="p-2 border">{new Date(e.fecha_creacion).toLocaleDateString()}</td>
+                    <td className="p-2 border space-x-2">
+                      <button
+                        onClick={() => openEditEnvioModal(e)}
+                        className="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => handleDeleteEnvio(e.id)}
+                        className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+                      >
+                        Eliminar
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <EnvioModal
+              isOpen={isEnvioModalOpen}
+              onClose={() => setIsEnvioModalOpen(false)}
+              onSave={handleCreateEnvio}
+              envioEditar={envioEditar}
+              productos={productos}
+              productosEnvioExistentes={productosEnvio}
             />
           </>
         )}
