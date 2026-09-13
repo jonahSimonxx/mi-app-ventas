@@ -33,7 +33,7 @@ const EnvioModal: React.FC<EnvioModalProps> = ({
     aranceles_usd: 0,
     peso_total_lbs: 0,
     estado: 'pendiente',
-    fecha_recepcion: null,
+    fecha_recepcion: undefined,
   });
 
   const [productosEnvio, setProductosEnvio] = useState<ProductoEnEnvio[]>([]);
@@ -51,7 +51,7 @@ const EnvioModal: React.FC<EnvioModalProps> = ({
         aranceles_usd: envioEditar.aranceles_usd || 0,
         peso_total_lbs: envioEditar.peso_total_lbs || 0,
         estado: envioEditar.estado || 'pendiente',
-        fecha_recepcion: envioEditar.fecha_recepcion || null,
+        fecha_recepcion: envioEditar.fecha_recepcion || undefined,
       });
       
       // Cargar productos del envío existente
@@ -69,7 +69,7 @@ const EnvioModal: React.FC<EnvioModalProps> = ({
         aranceles_usd: 0,
         peso_total_lbs: 0,
         estado: 'pendiente',
-        fecha_recepcion: null,
+        fecha_recepcion: undefined,
       });
       setProductosEnvio([]);
     }
