@@ -706,8 +706,6 @@ const App: React.FC = () => {
               monedas={monedas}
             />
           </>
-        )}
-
       <TasaCambioModal
         isOpen={isTasaModalOpen}
         onClose={() => setIsTasaModalOpen(false)}
