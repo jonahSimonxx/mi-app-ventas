@@ -13,7 +13,7 @@ try {
   console.warn('⚠️ dotenv no está instalado; se usarán los valores por defecto. Ejecuta "npm install".');
 }
 
-import { createConnection, Connection, getConnection } from 'typeorm';
+import { createConnection, Connection, getConnection, Between } from 'typeorm';
 import { Producto } from '../shared/entities/Producto';
 import { Moneda } from '../shared/entities/Moneda';
 import { Cuenta } from '../shared/entities/Cuenta';
@@ -294,6 +294,82 @@ ipcMain.handle('remove-producto-envio', async (_, id) => {
   } catch (error) {
     console.error('❌ Error al eliminar producto del envío:', error);
     throw error;
+  }
+});
+
+
+// ========== HANDLERS DE TRANSACCION ==========
+ipcMain.handle('get-transacciones', async () => {
+  try {
+    const repo = connection!.getRepository(Transaccion);
+    return await repo.find({ relations: ['cuenta_origen', 'cuenta_destino'] });
+  } catch (error) {
+    console.error('❌ Error al obtener transacciones:', error);
+    return [];
+  }
+});
+
+ipcMain.handle('create-transaccion', async (_, transaccionData) => {
+  try {
+    const repo = connection!.getRepository(Transaccion);
+    const nuevaTransaccion = repo.create(transaccionData as Transaccion);
+    await repo.save(nuevaTransaccion);
+    return nuevaTransaccion;
+  } catch (error) {
+    console.error('❌ Error al crear transacción:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('update-transaccion', async (_, id, transaccionData) => {
+  try {
+    const repo = connection!.getRepository(Transaccion);
+    await repo.update(id, transaccionData);
+    return await repo.findOne({ where: { id_trans: id }, relations: ['cuenta_origen', 'cuenta_destino'] });
+  } catch (error) {
+    console.error('❌ Error al actualizar transacción:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('delete-transaccion', async (_, id) => {
+  try {
+    const repo = connection!.getRepository(Transaccion);
+    await repo.delete(id);
+    return true;
+  } catch (error) {
+    console.error('❌ Error al eliminar transacción:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('get-transacciones-por-fecha', async (_, fecha) => {
+  try {
+    const repo = connection!.getRepository(Transaccion);
+    const startDate = new Date(fecha);
+    startDate.setHours(0, 0, 0, 0);
+    const endDate = new Date(fecha);
+    endDate.setHours(23, 59, 59, 999);
+    return await repo.find({
+      where: { fecha: Between(startDate, endDate) },
+      relations: ['cuenta_origen', 'cuenta_destino']
+    });
+  } catch (error) {
+    console.error('❌ Error al obtener transacciones por fecha:', error);
+    return [];
+  }
+});
+
+ipcMain.handle('get-transacciones-por-tipo', async (_, tipo) => {
+  try {
+    const repo = connection!.getRepository(Transaccion);
+    return await repo.find({
+      where: { tipo },
+      relations: ['cuenta_origen', 'cuenta_destino']
+    });
+  } catch (error) {
+    console.error('❌ Error al obtener transacciones por tipo:', error);
+    return [];
   }
 });
 

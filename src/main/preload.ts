@@ -28,6 +28,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   addProductoEnvio: (envioId: number, productoId: string, cantidad: number, precioUnitario: number) => ipcRenderer.invoke('add-producto-envio', envioId, productoId, cantidad, precioUnitario),
   removeProductoEnvio: (id: number) => ipcRenderer.invoke('remove-producto-envio', id),
 
+  // Handlers de Transaccion
+  getTransacciones: () => ipcRenderer.invoke('get-transacciones'),
+  createTransaccion: (transaccion: any) => ipcRenderer.invoke('create-transaccion', transaccion),
+  updateTransaccion: (id: number, transaccion: any) => ipcRenderer.invoke('update-transaccion', id, transaccion),
+  deleteTransaccion: (id: number) => ipcRenderer.invoke('delete-transaccion', id),
+  getTransaccionesPorFecha: (fecha: string) => ipcRenderer.invoke('get-transacciones-por-fecha', fecha),
+  getTransaccionesPorTipo: (tipo: string) => ipcRenderer.invoke('get-transacciones-por-tipo', tipo),
+
   getTasaActual: (codigo: string) => ipcRenderer.invoke('get-tasa-actual', codigo),
   getTasaPorFecha: (fecha: string, codigo: string) => ipcRenderer.invoke('get-tasa-por-fecha', fecha, codigo),
   getTasasHistoricas: () => ipcRenderer.invoke('get-tasas-historicas'),

@@ -4,11 +4,13 @@ import MonedaModal from './components/MonedaModal';
 import TasaCambioModal from './components/TasaCambioModal';
 import CuentaModal from './components/CuentaModal';
 import EnvioModal from './components/EnvioModal';
+import TransaccionModal from './components/TransaccionModal';
 import { Producto } from '../shared/entities/Producto';
 import { Moneda } from '../shared/entities/Moneda';
 import { Cuenta } from '../shared/entities/Cuenta';
 import { Envio } from '../shared/entities/Envio';
 import { ProductoEnvio } from '../shared/entities/ProductoEnvio';
+import { Transaccion } from '../shared/entities/Transaccion';
 
 const App: React.FC = () => {
   // ========== ESTADO PARA PRODUCTOS ==========
@@ -34,9 +36,12 @@ const App: React.FC = () => {
   const [isEnvioModalOpen, setIsEnvioModalOpen] = useState(false);
   const [envioEditar, setEnvioEditar] = useState<Partial<Envio> | null>(null);
   const [productosEnvio, setProductosEnvio] = useState<ProductoEnvio[]>([]);
+  const [transacciones, setTransacciones] = useState<Transaccion[]>([]);
+  const [isTransaccionModalOpen, setIsTransaccionModalOpen] = useState(false);
+  const [transaccionEditar, setTransaccionEditar] = useState<Partial<Transaccion> | null>(null);
 
   // ========== PESTAÑA ACTIVA ==========
-  const [activeTab, setActiveTab] = useState<'productos' | 'monedas' | 'cuentas' | 'envios'>('productos');
+  const [activeTab, setActiveTab] = useState<'productos' | 'monedas' | 'cuentas' | 'envios' | 'transacciones'>('productos');
 
   // ========== FUNCIONES PARA PRODUCTOS ==========
   const fetchProductos = async () => {
@@ -204,6 +209,37 @@ const App: React.FC = () => {
     setIsEnvioModalOpen(true);
   };
 
+
+  // ========== FUNCIONES PARA TRANSACCIONES ==========
+  const fetchTransacciones = async () => {
+    const data = await window.electronAPI.getTransacciones();
+    setTransacciones(data);
+  };
+
+  const handleCreateTransaccion = async (transaccion: Partial<Transaccion>) => {
+    await window.electronAPI.createTransaccion(transaccion);
+    fetchTransacciones();
+    setIsTransaccionModalOpen(false);
+  };
+
+  const handleUpdateTransaccion = async (id: number, transaccion: Partial<Transaccion>) => {
+    await window.electronAPI.updateTransaccion(id, transaccion);
+    fetchTransacciones();
+    setIsTransaccionModalOpen(false);
+  };
+
+  const handleDeleteTransaccion = async (id: number) => {
+    if (window.confirm('¿Estás seguro de eliminar esta transacción?')) {
+      await window.electronAPI.deleteTransaccion(id);
+      fetchTransacciones();
+    }
+  };
+
+  const openEditTransaccionModal = (transaccion: Transaccion) => {
+    setTransaccionEditar(transaccion);
+    setIsTransaccionModalOpen(true);
+  };
+
 // ========== CARGAR DATOS AL CAMBIAR DE PESTAÑA ==========
   useEffect(() => {
     if (activeTab === 'productos') {
@@ -214,6 +250,8 @@ const App: React.FC = () => {
       fetchCuentas();
     } else if (activeTab === 'envios') {
       fetchEnvios();
+    } else if (activeTab === 'transacciones') {
+      fetchTransacciones();
     }
   }, [activeTab]);
 
@@ -294,6 +332,16 @@ const App: React.FC = () => {
           }`}
         >
           Envíos
+        </button>
+        <button
+          onClick={() => setActiveTab('transacciones')}
+          className={`pb-2 px-4 font-medium ${
+            activeTab === 'transacciones'
+              ? 'border-b-2 border-blue-600 text-blue-600'
+              : 'text-gray-500'
+          }`}
+        >
+          Transacciones
         </button>
       </div>
 
@@ -586,7 +634,79 @@ const App: React.FC = () => {
             />
           </>
         )}
-      </div>
+
+        {/* ========== PESTAÑA TRANSACCIONES ========== */}
+        {activeTab === 'transacciones' && (
+          <>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Transacciones</h2>
+              <button
+                onClick={() => {
+                  setTransaccionEditar(null);
+                  setIsTransaccionModalOpen(true);
+                }}
+                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+              >
+                + Nueva Transacción
+              </button>
+            </div>
+
+            <table className="min-w-full mt-2 border">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="p-2 border">ID</th>
+                  <th className="p-2 border">Tipo</th>
+                  <th className="p-2 border">Origen</th>
+                  <th className="p-2 border">Destino</th>
+                  <th className="p-2 border">Monto Origen</th>
+                  <th className="p-2 border">Monto Destino</th>
+                  <th className="p-2 border">Tasa</th>
+                  <th className="p-2 border">Comisión</th>
+                  <th className="p-2 border">Fecha</th>
+                  <th className="p-2 border">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {transacciones.map((t) => (
+                  <tr key={t.id_trans}>
+                    <td className="p-2 border">{t.id_trans}</td>
+                    <td className="p-2 border">{t.tipo}</td>
+                    <td className="p-2 border">{t.cuenta_origen?.nombre || 'N/A'}</td>
+                    <td className="p-2 border">{t.cuenta_destino?.nombre || 'N/A'}</td>
+                    <td className="p-2 border">${t.monto_origen.toFixed(2)}</td>
+                    <td className="p-2 border">${t.monto_destino.toFixed(2)}</td>
+                    <td className="p-2 border">{t.tasa_cambio.toFixed(4)}</td>
+                    <td className="p-2 border">${t.comision.toFixed(2)}</td>
+                    <td className="p-2 border">{new Date(t.fecha).toLocaleDateString()}</td>
+                    <td className="p-2 border space-x-2">
+                      <button
+                        onClick={() => openEditTransaccionModal(t)}
+                        className="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => handleDeleteTransaccion(t.id_trans)}
+                        className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+                      >
+                        Eliminar
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <TransaccionModal
+              isOpen={isTransaccionModalOpen}
+              onClose={() => setIsTransaccionModalOpen(false)}
+              onSave={handleCreateTransaccion}
+              transaccionEditar={transaccionEditar}
+              cuentas={cuentas}
+              monedas={monedas}
+            />
+          </>
+        )}
 
       <TasaCambioModal
         isOpen={isTasaModalOpen}
