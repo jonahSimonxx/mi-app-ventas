@@ -1,4 +1,4 @@
-import { Entity, PrimaryColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { Envio } from './Envio';
 import { Producto } from './Producto';
 
@@ -14,4 +14,10 @@ export class ProductoEnvio {
   @ManyToOne(() => Producto)
   @JoinColumn({ name: 'producto_id', referencedColumnName: 'id_prod' })
   producto!: Producto;
+
+  @Column({ type: 'int' })
+  cantidad!: number;
+
+  @Column({ type: 'numeric', precision: 10, scale: 2 })
+  precio_unitario!: number;
 }

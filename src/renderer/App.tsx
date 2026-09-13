@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import ProductoModal from './components/ProductoModal';
 import MonedaModal from './components/MonedaModal';
 import TasaCambioModal from './components/TasaCambioModal';
+import CuentaModal from './components/CuentaModal';
 import { Producto } from '../shared/entities/Producto';
 import { Moneda } from '../shared/entities/Moneda';
 import { Cuenta } from '../shared/entities/Cuenta';
@@ -365,9 +366,8 @@ const App: React.FC = () => {
                 <tr>
                   <th className="p-2 border">ID</th>
                   <th className="p-2 border">Nombre</th>
-                  <th className="p-2 border">Tipo</th>
-                  <th className="p-2 border">Teléfono</th>
-                  <th className="p-2 border">Saldo (CUP)</th>
+                  <th className="p-2 border">Moneda</th>
+                  <th className="p-2 border">Saldo</th>
                   <th className="p-2 border">Acciones</th>
                 </tr>
               </thead>
@@ -376,9 +376,8 @@ const App: React.FC = () => {
                   <tr key={c.id_cuenta}>
                     <td className="p-2 border">{c.id_cuenta}</td>
                     <td className="p-2 border">{c.nombre}</td>
-                    <td className="p-2 border">
-                    </td>
-                    <td className="p-2 border">{Number(c.saldo).toFixed(2)}</td>
+                    <td className="p-2 border">{c.moneda?.codigo || 'N/A'}</td>
+                    <td className="p-2 border">{Number(c.saldo).toFixed(2)} {c.moneda?.codigo || ''}</td>
                     <td className="p-2 border space-x-2">
                       <button
                         onClick={() => openEditCuentaModal(c)}
@@ -397,9 +396,29 @@ const App: React.FC = () => {
                 ))}
               </tbody>
             </table>
+
+            <CuentaModal
+              isOpen={isCuentaModalOpen}
+              onClose={() => setIsCuentaModalOpen(false)}
+              onSave={(cuenta) => {
+                if (cuentaEditar) {
+                  handleUpdateCuenta(cuentaEditar.id_cuenta!, cuenta);
+                } else {
+                  handleCreateCuenta(cuenta);
+                }
+              }}
+              cuentaEditar={cuentaEditar}
+              monedas={monedas}
+            />
           </>
         )}
       </div>
+
+      <TasaCambioModal
+        isOpen={isTasaModalOpen}
+        onClose={() => setIsTasaModalOpen(false)}
+        onChanged={fetchMonedas}
+      />
     </div>
   );
 };

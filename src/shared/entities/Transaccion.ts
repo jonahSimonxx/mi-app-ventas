@@ -32,4 +32,7 @@ export class Transaccion {
 
   @Column({ type: 'timestamp' })
   fecha!: Date;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  descripcion!: string;
 }
