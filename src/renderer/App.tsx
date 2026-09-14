@@ -285,12 +285,6 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      <TasaCambioModal
-        isOpen={isTasaModalOpen}
-        onClose={() => setIsTasaModalOpen(false)}
-        onChanged={fetchMonedas}
-      />
-
       {/* Pestañas */}
       <div className="mt-6 flex gap-4 border-b">
         <button
