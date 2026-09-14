@@ -22,8 +22,6 @@ const TransaccionModal: React.FC<TransaccionModalProps> = ({
 }) => {
   const [transaccion, setTransaccion] = useState<Partial<Transaccion>>({
     tipo: 'venta',
-    cuenta_origen_id: '',
-    cuenta_destino_id: '',
     monto_origen: 0,
     monto_destino: 0,
     tasa_cambio: 1,
@@ -31,6 +29,9 @@ const TransaccionModal: React.FC<TransaccionModalProps> = ({
     fecha: new Date(),
     descripcion: '',
   });
+
+  const [cuentaOrigenId, setCuentaOrigenId] = useState<string>('');
+  const [cuentaDestinoId, setCuentaDestinoId] = useState<string>('');
 
   // Obtener tasa de cambio actual para USD
   const tasaUSD = monedas.find(m => m.codigo === 'USD')?.tasa_cambio || 1;
@@ -40,8 +41,6 @@ const TransaccionModal: React.FC<TransaccionModalProps> = ({
       setTransaccion({
         id_trans: transaccionEditar.id_trans,
         tipo: transaccionEditar.tipo || 'venta',
-        cuenta_origen_id: transaccionEditar.cuenta_origen_id || '',
-        cuenta_destino_id: transaccionEditar.cuenta_destino_id || '',
         monto_origen: transaccionEditar.monto_origen || 0,
         monto_destino: transaccionEditar.monto_destino || 0,
         tasa_cambio: transaccionEditar.tasa_cambio || 1,
@@ -49,11 +48,11 @@ const TransaccionModal: React.FC<TransaccionModalProps> = ({
         fecha: transaccionEditar.fecha || new Date(),
         descripcion: transaccionEditar.descripcion || '',
       });
+      setCuentaOrigenId(transaccionEditar.cuenta_origen?.id_cuenta || '');
+      setCuentaDestinoId(transaccionEditar.cuenta_destino?.id_cuenta || '');
     } else {
       setTransaccion({
         tipo: 'venta',
-        cuenta_origen_id: '',
-        cuenta_destino_id: '',
         monto_origen: 0,
         monto_destino: 0,
         tasa_cambio: 1,
@@ -61,12 +60,18 @@ const TransaccionModal: React.FC<TransaccionModalProps> = ({
         fecha: new Date(),
         descripcion: '',
       });
+      setCuentaOrigenId('');
+      setCuentaDestinoId('');
     }
   }, [transaccionEditar]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(transaccion);
+    onSave({
+      ...transaccion,
+      cuenta_origen: { id_cuenta: cuentaOrigenId } as Cuenta,
+      cuenta_destino: { id_cuenta: cuentaDestinoId } as Cuenta,
+    });
     onClose();
   };
 
@@ -118,8 +123,8 @@ const TransaccionModal: React.FC<TransaccionModalProps> = ({
             <div>
               <label className="block text-sm font-medium mb-1">Cuenta Origen:</label>
               <select
-                value={transaccion.cuenta_origen_id}
-                onChange={(e) => setTransaccion({ ...transaccion, cuenta_origen_id: e.target.value })}
+                value={cuentaOrigenId}
+                onChange={(e) => setCuentaOrigenId(e.target.value)}
                 className="w-full p-2 border rounded"
                 required
               >
@@ -134,8 +139,8 @@ const TransaccionModal: React.FC<TransaccionModalProps> = ({
             <div>
               <label className="block text-sm font-medium mb-1">Cuenta Destino:</label>
               <select
-                value={transaccion.cuenta_destino_id}
-                onChange={(e) => setTransaccion({ ...transaccion, cuenta_destino_id: e.target.value })}
+                value={cuentaDestinoId}
+                onChange={(e) => setCuentaDestinoId(e.target.value)}
                 className="w-full p-2 border rounded"
                 required
               >
