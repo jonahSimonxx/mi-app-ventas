@@ -39,7 +39,15 @@ const EnvioModal: React.FC<EnvioModalProps> = ({
   const [productosEnvio, setProductosEnvio] = useState<ProductoEnEnvio[]>([]);
   const [productoSeleccionado, setProductoSeleccionado] = useState<string>('');
   const [cantidad, setCantidad] = useState<number>(1);
-  const [precioUnitario, setPrecioUnitario] = useState<number>(0);
+  const [pesoEditado, setPesoEditado] = useState<boolean>(false);
+
+  // Suma el peso de los productos del envío: Σ cantidad × peso_lbs del producto
+  const pesoDesdeProductos = (lista: ProductoEnEnvio[]): number => {
+    const total = lista.reduce((sum, pe) => {
+      return sum + Number(pe.cantidad) * Number(pe.producto.peso_lbs || 0);
+    }, 0);
+    return Number(total.toFixed(2));
+  };
 
   // Cargar datos si estamos editando
   useEffect(() => {
@@ -62,6 +70,10 @@ const EnvioModal: React.FC<EnvioModalProps> = ({
         precio_unitario: pe.precio_unitario,
       }));
       setProductosEnvio(productosEnvioMapeados);
+      // Si el peso guardado difiere del calculado, era un ajuste manual y se conserva
+      const calculado = pesoDesdeProductos(productosEnvioMapeados);
+      const guardado = Number(envioEditar.peso_total_lbs) || 0;
+      setPesoEditado(Math.abs(guardado - calculado) > 0.001);
     } else {
       setEnvio({
         proveedor: 'WeShipYou',
@@ -72,6 +84,7 @@ const EnvioModal: React.FC<EnvioModalProps> = ({
         fecha_recepcion: undefined,
       });
       setProductosEnvio([]);
+      setPesoEditado(false);
     }
   }, [envioEditar, productosEnvioExistentes]);
 
@@ -91,45 +104,41 @@ const EnvioModal: React.FC<EnvioModalProps> = ({
       pe => pe.producto.id_prod === productoSeleccionado
     );
 
+    const nuevosProductos: ProductoEnEnvio[] = [];
     if (productoExistenteIndex >= 0) {
-      // Actualizar cantidad si el producto ya existe
-      const nuevosProductos = [...productosEnvio];
+      nuevosProductos.push(...productosEnvio);
       nuevosProductos[productoExistenteIndex] = {
         ...nuevosProductos[productoExistenteIndex],
-        cantidad: nuevosProductos[productoExistenteIndex].cantidad + cantidad,
+        cantidad: Number(nuevosProductos[productoExistenteIndex].cantidad) + Number(cantidad),
       };
-      setProductosEnvio(nuevosProductos);
     } else {
-      // Agregar nuevo producto
-      setProductosEnvio([
-        ...productosEnvio,
-        {
-          producto,
-          cantidad,
-          precio_unitario: precioUnitario,
-        },
-      ]);
+      nuevosProductos.push(...productosEnvio, {
+        producto,
+        cantidad,
+        precio_unitario: Number(producto.costo) || 0,
+      });
+    }
+    setProductosEnvio(nuevosProductos);
+
+    if (!pesoEditado) {
+      setEnvio((prev) => ({ ...prev, peso_total_lbs: pesoDesdeProductos(nuevosProductos) }));
     }
 
     // Limpiar selección
     setProductoSeleccionado('');
     setCantidad(1);
-    setPrecioUnitario(0);
   };
 
   const eliminarProducto = (index: number) => {
     const nuevosProductos = [...productosEnvio];
     nuevosProductos.splice(index, 1);
     setProductosEnvio(nuevosProductos);
+    if (!pesoEditado) {
+      setEnvio((prev) => ({ ...prev, peso_total_lbs: pesoDesdeProductos(nuevosProductos) }));
+    }
   };
 
-  const calcularPesoTotal = () => {
-    return productosEnvio.reduce((total, pe) => {
-      const producto = pe.producto;
-      // Asumimos que cada producto tiene un peso aproximado (por ahora usamos cantidad como peso)
-      return total + (pe.cantidad * 0.1); // 0.1 lbs por unidad (valor de ejemplo)
-    }, 0);
-  };
+  const productoSeleccionadoInfo = productos.find(p => p.id_prod === productoSeleccionado);
 
   if (!isOpen) return null;
 
@@ -174,7 +183,7 @@ const EnvioModal: React.FC<EnvioModalProps> = ({
               <input
                 type="number"
                 step="0.01"
-                value={envio.costo}
+                value={Number(envio.costo) === 0 ? '' : envio.costo}
                 onChange={(e) => setEnvio({ ...envio, costo: Number(e.target.value) })}
                 className="w-full p-2 border rounded"
                 required
@@ -185,22 +194,28 @@ const EnvioModal: React.FC<EnvioModalProps> = ({
               <input
                 type="number"
                 step="0.01"
-                value={envio.aranceles_usd}
+                value={Number(envio.aranceles_usd) === 0 ? '' : envio.aranceles_usd}
                 onChange={(e) => setEnvio({ ...envio, aranceles_usd: Number(e.target.value) })}
                 className="w-full p-2 border rounded"
                 required
               />
             </div>
-            <div>
+<div>
               <label className="block text-sm font-medium mb-1">Peso Total (lbs):</label>
               <input
                 type="number"
                 step="0.01"
-                value={calcularPesoTotal()}
-                onChange={(e) => setEnvio({ ...envio, peso_total_lbs: Number(e.target.value) })}
-                className="w-full p-2 border rounded bg-gray-100"
-                readOnly
+                min="0"
+                value={Number(envio.peso_total_lbs) === 0 ? '' : envio.peso_total_lbs}
+                onChange={(e) => {
+                  setPesoEditado(true);
+                  setEnvio({ ...envio, peso_total_lbs: Number(e.target.value) });
+                }}
+                className="w-full p-2 border rounded"
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Se calcula desde el peso de los productos; se puede ajustar manualmente.
+              </p>
             </div>
           </div>
 
@@ -227,6 +242,7 @@ const EnvioModal: React.FC<EnvioModalProps> = ({
                   <tr>
                     <th className="p-2 border">Producto</th>
                     <th className="p-2 border">Cantidad</th>
+                    <th className="p-2 border">Peso (lbs)</th>
                     <th className="p-2 border">Precio Unitario (USD)</th>
                     <th className="p-2 border">Subtotal (USD)</th>
                     <th className="p-2 border">Acciones</th>
@@ -237,8 +253,9 @@ const EnvioModal: React.FC<EnvioModalProps> = ({
                     <tr key={index}>
                       <td className="p-2 border">{pe.producto.nombre_prod}</td>
                       <td className="p-2 border">{pe.cantidad}</td>
-                      <td className="p-2 border">{pe.precio_unitario.toFixed(2)}</td>
-                      <td className="p-2 border">{(pe.cantidad * pe.precio_unitario).toFixed(2)}</td>
+                      <td className="p-2 border">{Number(pe.producto.peso_lbs || 0).toFixed(2)}</td>
+                      <td className="p-2 border">{Number(pe.precio_unitario).toFixed(2)}</td>
+                      <td className="p-2 border">{(Number(pe.cantidad) * Number(pe.precio_unitario)).toFixed(2)}</td>
                       <td className="p-2 border">
                         <button
                           type="button"
@@ -255,14 +272,13 @@ const EnvioModal: React.FC<EnvioModalProps> = ({
             </div>
 
             {/* Formulario para agregar productos */}
-            <div className="grid grid-cols-4 gap-2 mb-4">
+            <div className="grid grid-cols-3 gap-2 mb-2">
               <div>
                 <label className="block text-sm font-medium mb-1">Producto:</label>
                 <select
                   value={productoSeleccionado}
                   onChange={(e) => setProductoSeleccionado(e.target.value)}
                   className="w-full p-2 border rounded"
-                  required
                 >
                   <option value="">Seleccionar producto</option>
                   {productos.map((p) => (
@@ -277,21 +293,9 @@ const EnvioModal: React.FC<EnvioModalProps> = ({
                 <input
                   type="number"
                   min="1"
-                  value={cantidad}
+                  value={Number(cantidad) === 0 ? '' : cantidad}
                   onChange={(e) => setCantidad(Number(e.target.value))}
                   className="w-full p-2 border rounded"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Precio Unitario (USD):</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={precioUnitario}
-                  onChange={(e) => setPrecioUnitario(Number(e.target.value))}
-                  className="w-full p-2 border rounded"
-                  required
                 />
               </div>
               <div className="flex items-end">
@@ -304,6 +308,12 @@ const EnvioModal: React.FC<EnvioModalProps> = ({
                 </button>
               </div>
             </div>
+            {productoSeleccionadoInfo && (
+              <p className="text-xs text-gray-600 mb-4">
+                Precio: ${Number(productoSeleccionadoInfo.costo).toFixed(2)} USD · Peso:{' '}
+                {Number(productoSeleccionadoInfo.peso_lbs || 0).toFixed(2)} lbs
+              </p>
+            )}
           </div>
 
           <div className="flex justify-end gap-2">

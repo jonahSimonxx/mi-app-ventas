@@ -1,10 +1,10 @@
-import { Entity, PrimaryColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { Envio } from './Envio';
 import { Producto } from './Producto';
 
 @Entity('ProductoEnvio')
 export class ProductoEnvio {
-  @PrimaryColumn({ type: 'numeric' })
+  @PrimaryGeneratedColumn('increment')
   id!: number;
 
   @ManyToOne(() => Envio)

@@ -20,4 +20,7 @@ export class Producto {
 
   @Column({ type: 'numeric', precision: 10, scale: 2, default: 0 })
   stock_actual!: number;
+
+  @Column({ type: 'numeric', precision: 10, scale: 2, default: 0 })
+  peso_lbs!: number;
 }

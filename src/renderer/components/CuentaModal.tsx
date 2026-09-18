@@ -64,7 +64,7 @@ const CuentaModal: React.FC<CuentaModalProps> = ({ isOpen, onClose, onSave, cuen
               <option value="1">1 - Efectivo USD</option>
               <option value="2">2 - Efectivo CUP</option>
               <option value="3">3 - CUP Transferencia</option>
-              <option value="4">4 - Saldo Coinex</option>
+              <option value="4">4 - Saldo MyPal</option>
               <option value="5">5 - Saldo QvaPay</option>
               <option value="6">6 - Saldo MPay</option>
             </select>
@@ -103,10 +103,9 @@ const CuentaModal: React.FC<CuentaModalProps> = ({ isOpen, onClose, onSave, cuen
             <input
               type="number"
               step="0.01"
-              value={cuenta.saldo}
+              value={Number(cuenta.saldo) === 0 ? '' : cuenta.saldo}
               onChange={(e) => setCuenta({ ...cuenta, saldo: Number(e.target.value) })}
               className="w-full p-2 border rounded"
-              required
             />
           </div>
           <div className="flex justify-end gap-2">

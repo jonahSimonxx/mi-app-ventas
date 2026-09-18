@@ -17,6 +17,7 @@ const ProductoModal: React.FC<ProductoModalProps> = ({ isOpen, onClose, onSave, 
     costo: 0,
     precio_venta: 0,
     stock_actual: 0,
+    peso_lbs: 0,
   });
 
   useEffect(() => {
@@ -30,6 +31,7 @@ const ProductoModal: React.FC<ProductoModalProps> = ({ isOpen, onClose, onSave, 
         costo: 0,
         precio_venta: 0,
         stock_actual: 0,
+        peso_lbs: 0,
       });
     }
   }, [productoEditar, isOpen]);
@@ -50,14 +52,14 @@ const ProductoModal: React.FC<ProductoModalProps> = ({ isOpen, onClose, onSave, 
         </h2>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">ID:</label>
+            <label className="block text-sm font-medium mb-1">ID (automático):</label>
             <input
               type="text"
-              value={producto.id_prod}
+              value={productoEditar ? producto.id_prod : ''}
+              placeholder={productoEditar ? '' : 'Se generará automáticamente'}
               onChange={(e) => setProducto({ ...producto, id_prod: e.target.value })}
-              className="w-full p-2 border rounded"
-              required
-              readOnly={!!productoEditar}
+              className="w-full p-2 border rounded bg-gray-100"
+              readOnly
             />
           </div>
           <div className="mb-4">
@@ -84,7 +86,7 @@ const ProductoModal: React.FC<ProductoModalProps> = ({ isOpen, onClose, onSave, 
               <input
                 type="number"
                 step="0.01"
-                value={producto.costo}
+                value={Number(producto.costo) === 0 ? '' : producto.costo}
                 onChange={(e) => setProducto({ ...producto, costo: Number(e.target.value) })}
                 className="w-full p-2 border rounded"
                 required
@@ -95,7 +97,7 @@ const ProductoModal: React.FC<ProductoModalProps> = ({ isOpen, onClose, onSave, 
               <input
                 type="number"
                 step="0.01"
-                value={producto.precio_venta}
+                value={Number(producto.precio_venta) === 0 ? '' : producto.precio_venta}
                 onChange={(e) => setProducto({ ...producto, precio_venta: Number(e.target.value) })}
                 className="w-full p-2 border rounded"
                 required
@@ -108,15 +110,26 @@ const ProductoModal: React.FC<ProductoModalProps> = ({ isOpen, onClose, onSave, 
               {(Number(producto.precio_venta || 0) * Number(tasaUSD)).toFixed(2)} CUP
             </span>
           </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Stock:</label>
-            <input
-              type="number"
-              value={producto.stock_actual}
-              onChange={(e) => setProducto({ ...producto, stock_actual: Number(e.target.value) })}
-              className="w-full p-2 border rounded"
-              required
-            />
+          <div className="mb-4 grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Stock:</label>
+              <input
+                type="number"
+                value={Number(producto.stock_actual) === 0 ? '' : producto.stock_actual}
+                onChange={(e) => setProducto({ ...producto, stock_actual: Number(e.target.value) })}
+                className="w-full p-2 border rounded"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Peso (lbs):</label>
+              <input
+                type="number"
+                step="0.01"
+                value={Number(producto.peso_lbs) === 0 ? '' : producto.peso_lbs}
+                onChange={(e) => setProducto({ ...producto, peso_lbs: Number(e.target.value) })}
+                className="w-full p-2 border rounded"
+              />
+            </div>
           </div>
           <div className="flex justify-end gap-2">
             <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 rounded">

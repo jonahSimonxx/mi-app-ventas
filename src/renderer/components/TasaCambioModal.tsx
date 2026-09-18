@@ -24,7 +24,7 @@ const TasaCambioModal: React.FC<TasaCambioModalProps> = ({ isOpen, onClose, onCh
   const [cargando, setCargando] = useState(false);
   const [form, setForm] = useState({
     fecha: hoy(),
-    usd_to_cup: 0,
+    usd_to_cup: '' as number | '',
     eur_to_cup: '' as number | '',
     gbp_to_cup: '' as number | '',
   });
@@ -54,7 +54,7 @@ const TasaCambioModal: React.FC<TasaCambioModalProps> = ({ isOpen, onClose, onCh
       gbp_to_cup: form.gbp_to_cup === '' ? undefined : Number(form.gbp_to_cup),
       fuente: 'manual',
     });
-    setForm({ fecha: hoy(), usd_to_cup: 0, eur_to_cup: '', gbp_to_cup: '' });
+    setForm({ fecha: hoy(), usd_to_cup: '', eur_to_cup: '', gbp_to_cup: '' });
     await cargarHistorico();
     onChanged?.();
   };
@@ -102,7 +102,9 @@ const TasaCambioModal: React.FC<TasaCambioModalProps> = ({ isOpen, onClose, onCh
               type="number"
               step="0.0001"
               value={form.usd_to_cup}
-              onChange={(e) => setForm({ ...form, usd_to_cup: Number(e.target.value) })}
+              onChange={(e) =>
+                setForm({ ...form, usd_to_cup: e.target.value === '' ? '' : Number(e.target.value) })
+              }
               className="w-full p-2 border rounded"
               required
             />

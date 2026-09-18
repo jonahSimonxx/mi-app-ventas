@@ -33,6 +33,79 @@ import {
 let mainWindow: BrowserWindow | null = null;
 let connection: Connection | null = null;
 
+function generarIdProducto(): string {
+  return (
+    'P' +
+    Date.now().toString(36).toUpperCase() +
+    Math.random().toString(36).slice(2, 5).toUpperCase()
+  );
+}
+
+async function migrarDatosIniciales() {
+  if (!connection) return;
+  try {
+    const repoMoneda = connection.getRepository(Moneda);
+    const monedasBase = [
+      { codigo: 'USD', nombre: 'Dólar Estadounidense' },
+      { codigo: 'CUP', nombre: 'Peso Cubano' },
+      { codigo: 'USDT', nombre: 'Tether' },
+      { codigo: 'EUR', nombre: 'Euro' },
+      { codigo: 'GBP', nombre: 'Libra Esterlina' },
+    ];
+    for (const m of monedasBase) {
+      const existente = await repoMoneda.findOne({ where: { codigo: m.codigo } });
+      if (!existente) {
+        await repoMoneda.save(
+          repoMoneda.create({
+            codigo: m.codigo,
+            nombre: m.nombre,
+            tasa_cambio: m.codigo === 'CUP' ? 1 : 0,
+          } as Moneda)
+        );
+      }
+    }
+
+    const repoCuenta = connection.getRepository(Cuenta);
+    // Renombre histórico: Saldo Coinex → Saldo MyPal
+    const cuentaCoinex = await repoCuenta.findOne({ where: { id_cuenta: '4', nombre: 'Saldo Coinex' } });
+    if (cuentaCoinex) {
+      cuentaCoinex.nombre = 'Saldo MyPal';
+      await repoCuenta.save(cuentaCoinex);
+      console.log('✅ Cuenta 4 renombrada: Saldo Coinex → Saldo MyPal');
+    }
+
+    const totalCuentas = await repoCuenta.count();
+    if (totalCuentas === 0) {
+      const cuentasBase = [
+        { id_cuenta: '1', nombre: 'Efectivo USD', codigo: 'USD' },
+        { id_cuenta: '2', nombre: 'Efectivo CUP', codigo: 'CUP' },
+        { id_cuenta: '3', nombre: 'CUP Transferencia', codigo: 'CUP' },
+        { id_cuenta: '4', nombre: 'Saldo MyPal', codigo: 'USD' },
+        { id_cuenta: '5', nombre: 'Saldo QvaPay', codigo: 'USDT' },
+        { id_cuenta: '6', nombre: 'Saldo MPay', codigo: 'USD' },
+      ];
+      for (const c of cuentasBase) {
+        await repoCuenta.save(
+          repoCuenta.create({
+            id_cuenta: c.id_cuenta,
+            nombre: c.nombre,
+            saldo: 0,
+            moneda: { codigo: c.codigo } as Moneda,
+          } as Cuenta)
+        );
+      }
+      console.log('✅ Cuentas predefinidas creadas');
+    }
+
+    // Las transacciones son solo movimientos entre cuentas (tipo 'transferencia')
+    await connection.query(
+      "UPDATE Transaccion SET tipo='transferencia' WHERE tipo IS DISTINCT FROM 'transferencia'"
+    );
+  } catch (error) {
+    console.error('❌ Error en la migración de datos iniciales:', error);
+  }
+}
+
 async function initDatabase() {
   try {
     // Electron ligado por ESET: abre socket TCP local y el bridge se conecta a la nube.
@@ -47,9 +120,10 @@ async function initDatabase() {
       entities: [Producto, Moneda, Cuenta, Envio, ProductoEnvio, Transaccion, TasaCambioHistorico],
       synchronize: true,
       ssl: false,
-      logging: true,
+      logging: false,
     });
     console.log('✅ Base de datos conectada vía bridge local (puerto ' + bridgePort + ')');
+    await migrarDatosIniciales();
   } catch (error) {
     console.error('❌ Error en la base de datos:', error);
     connection = null;
@@ -70,7 +144,10 @@ ipcMain.handle('get-productos', async () => {
 ipcMain.handle('create-producto', async (_, producto: Partial<Producto>) => {
   try {
     const repo = connection!.getRepository(Producto);
-    const nuevoProducto = repo.create(producto as Producto);
+    const nuevoProducto = repo.create({
+      ...producto,
+      id_prod: producto.id_prod?.trim() || generarIdProducto(),
+    } as Producto);
     await repo.save(nuevoProducto);
     return nuevoProducto;
   } catch (error) {
@@ -150,7 +227,7 @@ ipcMain.handle('delete-moneda', async (_, codigo: string) => {
 ipcMain.handle('get-cuentas', async () => {
   try {
     const repo = connection!.getRepository(Cuenta);
-    return await repo.find();
+    return await repo.find({ relations: ['moneda'] });
   } catch (error) {
     console.error('❌ Error al obtener cuentas:', error);
     return [];
@@ -356,19 +433,6 @@ ipcMain.handle('get-transacciones-por-fecha', async (_, fecha) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener transacciones por fecha:', error);
-    return [];
-  }
-});
-
-ipcMain.handle('get-transacciones-por-tipo', async (_, tipo) => {
-  try {
-    const repo = connection!.getRepository(Transaccion);
-    return await repo.find({
-      where: { tipo },
-      relations: ['cuenta_origen', 'cuenta_destino']
-    });
-  } catch (error) {
-    console.error('❌ Error al obtener transacciones por tipo:', error);
     return [];
   }
 });

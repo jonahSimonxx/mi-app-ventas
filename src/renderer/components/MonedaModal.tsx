@@ -59,6 +59,8 @@ const MonedaModal: React.FC<MonedaModalProps> = ({ isOpen, onClose, onSave, mone
               <option value="USD">USD</option>
               <option value="CUP">CUP</option>
               <option value="USDT">USDT</option>
+              <option value="EUR">EUR</option>
+              <option value="GBP">GBP</option>
             </select>
           </div>
           <div className="mb-4">
@@ -73,6 +75,8 @@ const MonedaModal: React.FC<MonedaModalProps> = ({ isOpen, onClose, onSave, mone
               <option value="Dólar Estadounidense">Dólar Estadounidense</option>
               <option value="Peso Cubano">Peso Cubano</option>
               <option value="Tether">Tether</option>
+              <option value="Euro">Euro</option>
+              <option value="Libra Esterlina">Libra Esterlina</option>
             </select>
           </div>
           {/* Tasa de cambio */}
@@ -80,7 +84,7 @@ const MonedaModal: React.FC<MonedaModalProps> = ({ isOpen, onClose, onSave, mone
             <label className="block text-sm font-medium mb-1">Tasa de Cambio (vs CUP):</label>
             <input
               type="text" 
-           value={moneda.tasa_cambio}
+           value={Number(moneda.tasa_cambio) === 0 ? '' : moneda.tasa_cambio}
     onChange={(e) => {
       const value = e.target.value;
       if (value === '' || /^[0-9]*\.?[0-9]*$/.test(value)) {

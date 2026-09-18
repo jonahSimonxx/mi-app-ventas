@@ -198,7 +198,14 @@
 ## Fase 8: Mejoras y Optimización
 
 - [ ] Migrar lógica de main.ts a servicios modulares
-- [ ] **Todos los IDs deben generarse automáticamente al crear registros (evitar entrada manual)**
+- [x] **Todos los IDs deben generarse automáticamente al crear registros (evitar entrada manual)** — hecho para Envio, Transaccion, ProductoEnvio y Producto (`id_prod` auto); las Cuentas conservan IDs fijos 1-6 (conjunto predefinido de negocio)
+- [x] **Campos numéricos de modales: no mostrar 0 por defecto ni "0 delante del número"** (costo, precio, saldo, montos, tasas, comisión)
+- [x] **Cuentas: reemplazar 'Saldo Coinex' por 'Saldo MyPal'** (entity, modal y migración de datos al iniciar)
+- [x] **Monedas: soportar todas las monedas del programa** (USD, CUP, USDT, EUR, GBP; se quitaron constraints que las limitaban y se siembran al iniciar)
+- [x] **Corregir crash en pestaña Envíos/Transacciones** — numeric de Postgres llega como string; `.toFixed()` crasheaba; ahora se usa `Number()`
+- [x] **Peso de los envíos calculado desde `peso_lbs` del producto (Σ cantidad × peso), con ajuste manual** — nuevo campo en Producto, editable en el formulario del envío
+- [x] **Envíos: precio de línea autocompletado desde `producto.costo`; botón Crear/Guardar independiente de los campos de "agregar producto"** (ya no bloquea el submit)
+- [x] **Pestaña Transacciones limitada a movimientos entre cuentas** — tipo fijo `transferencia` (sin venta/compra/envío), comisiones de plataformas van dentro de la transferencia; se quitó el selector de tipo, la columna "Tipo" y el handler IPC `get-transacciones-por-tipo`; filas existentes se normalizan en `migrarDatosIniciales`
 - [ ] **Al crear un producto, el stock debe inicializarse con valor 0.00 por defecto**
 - [ ] Eliminar dependencias no usadas (axios, cheerio)
 - [ ] Agregar validaciones en forms

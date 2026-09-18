@@ -3,7 +3,6 @@ import { Moneda } from './Moneda';
 
 @Entity('Cuenta')
 @Check(`id_cuenta IN (1, 2, 3, 4, 5, 6)`)
-@Check(`nombre IN ('Efectivo USD', 'Efectivo CUP', 'CUP Transferencia', 'Saldo Coinex', 'Saldo QvaPay', 'Saldo MPay')`)
 export class Cuenta {
   @PrimaryColumn({ type: 'numeric' })
   id_cuenta!: string;

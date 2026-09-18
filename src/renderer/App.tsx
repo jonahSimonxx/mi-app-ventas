@@ -242,12 +242,11 @@ const App: React.FC = () => {
 
 // ========== CARGAR DATOS AL CAMBIAR DE PESTAÑA ==========
   useEffect(() => {
-    if (activeTab === 'productos') {
-      fetchProductos();
-    } else if (activeTab === 'monedas') {
+    fetchMonedas();
+    fetchProductos();
+    fetchCuentas();
+    if (activeTab === 'monedas') {
       fetchMonedas();
-    } else if (activeTab === 'cuentas') {
-      fetchCuentas();
     } else if (activeTab === 'envios') {
       fetchEnvios();
     } else if (activeTab === 'transacciones') {
@@ -366,6 +365,7 @@ const App: React.FC = () => {
                   <th className="p-2 border">Costo (USD)</th>
                   <th className="p-2 border">Precio Venta (USD/CUP)</th>
                   <th className="p-2 border">Stock</th>
+                  <th className="p-2 border">Peso (lbs)</th>
                   <th className="p-2 border">Acciones</th>
                 </tr>
               </thead>
@@ -383,9 +383,12 @@ const App: React.FC = () => {
                       </span>
                     </td>
                     <td className={`p-2 border ${
-                      p.stock_actual >= 5 ? 'text-green-600' : 'text-red-600'
+                      Number(p.stock_actual) >= 5 ? 'text-green-600' : 'text-red-600'
                     }`}>
-                      {p.stock_actual}
+                      {Number(p.stock_actual)}
+                    </td>
+                    <td className="p-2 border">
+                      {Number(p.peso_lbs || 0).toFixed(2)}
                     </td>
                     <td className="p-2 border space-x-2">
                       <button
@@ -590,9 +593,9 @@ const App: React.FC = () => {
                   <tr key={e.id} className={e.estado === 'recibido' ? 'bg-green-50' : 'bg-yellow-50'}>
                     <td className="p-2 border">{e.id}</td>
                     <td className="p-2 border">{e.proveedor}</td>
-                    <td className="p-2 border">{e.peso_total_lbs}</td>
-                    <td className="p-2 border">${e.costo.toFixed(2)}</td>
-                    <td className="p-2 border">${e.aranceles_usd.toFixed(2)}</td>
+                    <td className="p-2 border">{Number(e.peso_total_lbs).toFixed(2)}</td>
+                    <td className="p-2 border">${Number(e.costo).toFixed(2)}</td>
+                    <td className="p-2 border">${Number(e.aranceles_usd).toFixed(2)}</td>
                     <td className="p-2 border">
                       <span className={`px-2 py-1 rounded text-xs ${e.estado === 'recibido' ? 'bg-green-200 text-green-800' : 'bg-yellow-200 text-yellow-800'}`}>
                         {e.estado}
@@ -621,7 +624,13 @@ const App: React.FC = () => {
             <EnvioModal
               isOpen={isEnvioModalOpen}
               onClose={() => setIsEnvioModalOpen(false)}
-              onSave={handleCreateEnvio}
+              onSave={(envio, productosEnvioData) => {
+                if (envioEditar?.id) {
+                  handleUpdateEnvio(envioEditar.id, envio, productosEnvioData);
+                } else {
+                  handleCreateEnvio(envio, productosEnvioData);
+                }
+              }}
               envioEditar={envioEditar}
               productos={productos}
               productosEnvioExistentes={productosEnvio}
@@ -649,7 +658,6 @@ const App: React.FC = () => {
               <thead className="bg-gray-100">
                 <tr>
                   <th className="p-2 border">ID</th>
-                  <th className="p-2 border">Tipo</th>
                   <th className="p-2 border">Origen</th>
                   <th className="p-2 border">Destino</th>
                   <th className="p-2 border">Monto Origen</th>
@@ -664,13 +672,12 @@ const App: React.FC = () => {
                 {transacciones.map((t) => (
                   <tr key={t.id_trans}>
                     <td className="p-2 border">{t.id_trans}</td>
-                    <td className="p-2 border">{t.tipo}</td>
                     <td className="p-2 border">{t.cuenta_origen?.nombre || 'N/A'}</td>
                     <td className="p-2 border">{t.cuenta_destino?.nombre || 'N/A'}</td>
-                    <td className="p-2 border">${t.monto_origen.toFixed(2)}</td>
-                    <td className="p-2 border">${t.monto_destino.toFixed(2)}</td>
-                    <td className="p-2 border">{t.tasa_cambio.toFixed(4)}</td>
-                    <td className="p-2 border">${t.comision.toFixed(2)}</td>
+                    <td className="p-2 border">${Number(t.monto_origen).toFixed(2)}</td>
+                    <td className="p-2 border">${Number(t.monto_destino).toFixed(2)}</td>
+                    <td className="p-2 border">{Number(t.tasa_cambio).toFixed(4)}</td>
+                    <td className="p-2 border">${Number(t.comision).toFixed(2)}</td>
                     <td className="p-2 border">{new Date(t.fecha).toLocaleDateString()}</td>
                     <td className="p-2 border space-x-2">
                       <button
@@ -694,7 +701,13 @@ const App: React.FC = () => {
             <TransaccionModal
               isOpen={isTransaccionModalOpen}
               onClose={() => setIsTransaccionModalOpen(false)}
-              onSave={handleCreateTransaccion}
+              onSave={(transaccion) => {
+                if (transaccionEditar?.id_trans) {
+                  handleUpdateTransaccion(transaccionEditar.id_trans, transaccion);
+                } else {
+                  handleCreateTransaccion(transaccion);
+                }
+              }}
               transaccionEditar={transaccionEditar}
               cuentas={cuentas}
               monedas={monedas}

@@ -48,7 +48,6 @@ export interface ElectronAPI {
   updateTransaccion: (id: number, transaccion: Partial<Transaccion>) => Promise<Transaccion | null>;
   deleteTransaccion: (id: number) => Promise<boolean>;
   getTransaccionesPorFecha: (fecha: string) => Promise<Transaccion[]>;
-  getTransaccionesPorTipo: (tipo: string) => Promise<Transaccion[]>;
 
   getTasaActual: (codigo: string) => Promise<number>;
   getTasaPorFecha: (fecha: string, codigo: string) => Promise<number>;

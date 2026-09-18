@@ -21,7 +21,7 @@ const TransaccionModal: React.FC<TransaccionModalProps> = ({
   monedas,
 }) => {
   const [transaccion, setTransaccion] = useState<Partial<Transaccion>>({
-    tipo: 'venta',
+    tipo: 'transferencia',
     monto_origen: 0,
     monto_destino: 0,
     tasa_cambio: 1,
@@ -40,7 +40,7 @@ const TransaccionModal: React.FC<TransaccionModalProps> = ({
     if (transaccionEditar) {
       setTransaccion({
         id_trans: transaccionEditar.id_trans,
-        tipo: transaccionEditar.tipo || 'venta',
+        tipo: 'transferencia',
         monto_origen: transaccionEditar.monto_origen || 0,
         monto_destino: transaccionEditar.monto_destino || 0,
         tasa_cambio: transaccionEditar.tasa_cambio || 1,
@@ -52,7 +52,7 @@ const TransaccionModal: React.FC<TransaccionModalProps> = ({
       setCuentaDestinoId(transaccionEditar.cuenta_destino?.id_cuenta || '');
     } else {
       setTransaccion({
-        tipo: 'venta',
+        tipo: 'transferencia',
         monto_origen: 0,
         monto_destino: 0,
         tasa_cambio: 1,
@@ -77,8 +77,8 @@ const TransaccionModal: React.FC<TransaccionModalProps> = ({
 
   // Calcular monto destino automáticamente
   useEffect(() => {
-    if (transaccion.monto_origen && transaccion.tasa_cambio) {
-      const montoDestino = transaccion.monto_origen * transaccion.tasa_cambio;
+    if (Number(transaccion.monto_origen) && Number(transaccion.tasa_cambio)) {
+      const montoDestino = Number(transaccion.monto_origen) * Number(transaccion.tasa_cambio);
       setTransaccion(prev => ({ ...prev, monto_destino: montoDestino }));
     }
   }, [transaccion.monto_origen, transaccion.tasa_cambio]);
@@ -92,21 +92,10 @@ const TransaccionModal: React.FC<TransaccionModalProps> = ({
           {transaccionEditar ? 'Editar Transacción' : 'Nueva Transacción'}
         </h2>
         <form onSubmit={handleSubmit}>
+          <p className="text-xs text-gray-600 mb-4">
+            Movimiento entre cuentas · la comisión es lo que cobra la plataforma/peer
+          </p>
           <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Tipo:</label>
-              <select
-                value={transaccion.tipo}
-                onChange={(e) => setTransaccion({ ...transaccion, tipo: e.target.value })}
-                className="w-full p-2 border rounded"
-                required
-              >
-                <option value="venta">Venta</option>
-                <option value="compra">Compra</option>
-                <option value="transferencia">Transferencia</option>
-                <option value="envio">Envío</option>
-              </select>
-            </div>
             <div>
               <label className="block text-sm font-medium mb-1">Fecha:</label>
               <input
@@ -160,7 +149,7 @@ const TransaccionModal: React.FC<TransaccionModalProps> = ({
               <input
                 type="number"
                 step="0.01"
-                value={transaccion.monto_origen}
+                value={Number(transaccion.monto_origen) === 0 ? '' : transaccion.monto_origen}
                 onChange={(e) => setTransaccion({ ...transaccion, monto_origen: Number(e.target.value) })}
                 className="w-full p-2 border rounded"
                 required
@@ -171,7 +160,7 @@ const TransaccionModal: React.FC<TransaccionModalProps> = ({
               <input
                 type="number"
                 step="0.0001"
-                value={transaccion.tasa_cambio}
+                value={Number(transaccion.tasa_cambio) === 0 ? '' : transaccion.tasa_cambio}
                 onChange={(e) => setTransaccion({ ...transaccion, tasa_cambio: Number(e.target.value) })}
                 className="w-full p-2 border rounded"
                 required
@@ -196,7 +185,7 @@ const TransaccionModal: React.FC<TransaccionModalProps> = ({
               <input
                 type="number"
                 step="0.01"
-                value={transaccion.comision}
+                value={Number(transaccion.comision) === 0 ? '' : transaccion.comision}
                 onChange={(e) => setTransaccion({ ...transaccion, comision: Number(e.target.value) })}
                 className="w-full p-2 border rounded"
               />

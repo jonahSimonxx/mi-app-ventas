@@ -1,8 +1,6 @@
-import { Entity, PrimaryColumn, Column, Check } from 'typeorm';
+import { Entity, PrimaryColumn, Column } from 'typeorm';
 
 @Entity('Moneda')
-@Check(`codigo IN ('USD', 'CUP', 'USDT')`)
-@Check(`nombre IN ('Dólar Estadounidense', 'Peso Cubano', 'Tether')`)
 export class Moneda {
   @PrimaryColumn({ type: 'varchar', length: 5 })
   codigo!: string;

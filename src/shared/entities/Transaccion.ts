@@ -1,10 +1,9 @@
-import { Entity, PrimaryColumn, Column, ManyToOne, JoinColumn, Check } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { Cuenta } from './Cuenta';
 
 @Entity('Transaccion')
-@Check(`tipo IN ('transferencia', 'venta', 'compra', 'envio')`)
 export class Transaccion {
-  @PrimaryColumn({ type: 'numeric' })
+  @PrimaryGeneratedColumn('increment')
   id_trans!: number;
 
   @ManyToOne(() => Cuenta)
@@ -27,7 +26,7 @@ export class Transaccion {
   @Column({ type: 'numeric', precision: 15, scale: 2 })
   comision!: number;
 
-  @Column({ type: 'varchar', length: 50 })
+  @Column({ type: 'varchar', length: 50, default: 'transferencia' })
   tipo!: string;
 
   @Column({ type: 'timestamp' })
