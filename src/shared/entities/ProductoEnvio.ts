@@ -7,11 +7,11 @@ export class ProductoEnvio {
   @PrimaryGeneratedColumn('increment')
   id!: number;
 
-  @ManyToOne(() => Envio)
+  @ManyToOne(() => Envio, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'envio_id' })
   envio!: Envio;
 
-  @ManyToOne(() => Producto)
+  @ManyToOne(() => Producto, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'producto_id', referencedColumnName: 'id_prod' })
   producto!: Producto;
 

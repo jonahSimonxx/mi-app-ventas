@@ -16,6 +16,9 @@ export class Envio {
   @Column({ type: 'numeric', precision: 15, scale: 2 })
   aranceles_usd!: number;
 
+  @Column({ type: 'numeric', precision: 15, scale: 2, default: 0 })
+  otros_costos_usd!: number;
+
   @Column({ type: 'numeric', precision: 15, scale: 2 })
   peso_total_lbs!: number;
 

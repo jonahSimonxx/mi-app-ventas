@@ -1,7 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Envio } from '../../shared/entities/Envio';
 import { Producto } from '../../shared/entities/Producto';
 import { ProductoEnvio } from '../../shared/entities/ProductoEnvio';
+import NumInput from './NumInput';
+import ErrorFormulario from './ErrorFormulario';
+import { Modal } from '@heroui/react/modal';
+import { Button } from '@heroui/react/button';
+import { Input } from '@heroui/react/input';
+import Selector from './Selector';
 
 interface ProductoEnEnvio {
   id?: number;
@@ -27,10 +33,12 @@ const EnvioModal: React.FC<EnvioModalProps> = ({
   productos,
   productosEnvioExistentes 
 }) => {
+  const [errores, setErrores] = useState<string[]>([]);
   const [envio, setEnvio] = useState<Partial<Envio>>({
     proveedor: 'WeShipYou',
     costo: 0,
     aranceles_usd: 0,
+    otros_costos_usd: 0,
     peso_total_lbs: 0,
     estado: 'pendiente',
     fecha_recepcion: undefined,
@@ -41,6 +49,15 @@ const EnvioModal: React.FC<EnvioModalProps> = ({
   const [cantidad, setCantidad] = useState<number>(1);
   const [pesoEditado, setPesoEditado] = useState<boolean>(false);
 
+  // Un envío ya recibido tiene su stock y su FIFO consolidados: sus productos quedan bloqueados.
+  const envioRecibido = Boolean(envioEditar?.id && envioEditar.estado === 'recibido');
+  const productosBloqueados = envioRecibido && envio.estado === 'recibido';
+
+  const overheadTotal =
+    Number(envio.costo) + Number(envio.aranceles_usd) + Number(envio.otros_costos_usd);
+  const totalUnidades = productosEnvio.reduce((sum, pe) => sum + Number(pe.cantidad), 0);
+  const overheadPorUnidad = totalUnidades > 0 ? overheadTotal / totalUnidades : 0;
+
   // Suma el peso de los productos del envío: Σ cantidad × peso_lbs del producto
   const pesoDesdeProductos = (lista: ProductoEnEnvio[]): number => {
     const total = lista.reduce((sum, pe) => {
@@ -49,19 +66,38 @@ const EnvioModal: React.FC<EnvioModalProps> = ({
     return Number(total.toFixed(2));
   };
 
-  // Cargar datos si estamos editando
+  // Cargar datos si estamos editando.
+  //
+  // Antes esto se resincronizaba en cada cambio de `productosEnvioExistentes`, lo que
+  // podía pisar los productos que el usuario acababa de añadir en el formulario. Ahora
+  // la carga ocurre UNA vez por cada apertura: mientras el modal siga abierto sobre el
+  // mismo envío, la lista es del usuario y no se toca.
+  const cargadoPara = useRef<string | null>(null);
+
   useEffect(() => {
+    if (!isOpen) {
+      // Al cerrar se olvida la marca, para que la próxima apertura recargue de verdad.
+      cargadoPara.current = null;
+      return;
+    }
+
+    const clave = envioEditar?.id != null ? String(envioEditar.id) : 'nuevo';
+    if (cargadoPara.current === clave) return;
+    cargadoPara.current = clave;
+    setErrores([]);
+
     if (envioEditar) {
       setEnvio({
         id: envioEditar.id,
         proveedor: envioEditar.proveedor || 'WeShipYou',
         costo: envioEditar.costo || 0,
         aranceles_usd: envioEditar.aranceles_usd || 0,
+        otros_costos_usd: envioEditar.otros_costos_usd || 0,
         peso_total_lbs: envioEditar.peso_total_lbs || 0,
         estado: envioEditar.estado || 'pendiente',
         fecha_recepcion: envioEditar.fecha_recepcion || undefined,
       });
-      
+
       // Cargar productos del envío existente
       const productosEnvioMapeados = productosEnvioExistentes.map(pe => ({
         id: pe.id,
@@ -79,6 +115,7 @@ const EnvioModal: React.FC<EnvioModalProps> = ({
         proveedor: 'WeShipYou',
         costo: 0,
         aranceles_usd: 0,
+        otros_costos_usd: 0,
         peso_total_lbs: 0,
         estado: 'pendiente',
         fecha_recepcion: undefined,
@@ -86,19 +123,57 @@ const EnvioModal: React.FC<EnvioModalProps> = ({
       setProductosEnvio([]);
       setPesoEditado(false);
     }
-  }, [envioEditar, productosEnvioExistentes]);
+  }, [isOpen, envioEditar, productosEnvioExistentes]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // ========== VALIDACIÓN ==========
+    // El motivo es que un envío inválido no revienta: el motor FIFO divide el overhead
+    // entre las unidades (`unidades <= 0 → 0`), así que un envío sin productos marcado como
+    // "recibido" hace que flete + aranceles + otros **desaparezcan en silencio** del costo
+    // FIFO y la ganancia de las ventas sale inflada sin que nada lo delate.
+    const errores: string[] = [];
+
+    if (envio.estado === 'recibido' && productosEnvio.length === 0) {
+      errores.push('Un envío recibido necesita al menos un producto: sin unidades, el flete y los aranceles no se reparten y el costo real queda en 0.');
+    }
+
+    for (const pe of productosEnvio) {
+      const cant = Number(pe.cantidad);
+      if (!Number.isFinite(cant) || cant < 1) {
+        errores.push(`La cantidad de "${pe.producto.nombre_prod}" debe ser al menos 1 (quedó en ${pe.cantidad}).`);
+      } else if (!Number.isInteger(cant)) {
+        // `ProductoEnvio.cantidad` es INT en la BD: un decimal se redondearía solo y
+        // el peso/overhead que muestra el modal no serían los que quedan guardados.
+        errores.push(`La cantidad de "${pe.producto.nombre_prod}" debe ser un número entero (quedó en ${cant}).`);
+      }
+    }
+
+    if (Number(envio.peso_total_lbs) < 0) {
+      errores.push('El peso total no puede ser negativo.');
+    }
+
+    setErrores(errores);
+    if (errores.length > 0) return;
+
     onSave(envio, productosEnvio);
     onClose();
   };
 
   const agregarProducto = () => {
     if (!productoSeleccionado) return;
-    
+
     const producto = productos.find(p => p.id_prod === productoSeleccionado);
     if (!producto) return;
+
+    // `min="1"` en el NumInput no hace nada (es `type="text"`), así que el 0 se puede
+    // teclear. Se corrige acá, que es el único lugar por donde entra una línea.
+    if (!Number.isInteger(Number(cantidad)) || Number(cantidad) < 1) {
+      setErrores([`La cantidad de "${producto.nombre_prod}" debe ser un entero mayor o igual a 1.`]);
+      return;
+    }
+    setErrores([]);
 
     const productoExistenteIndex = productosEnvio.findIndex(
       pe => pe.producto.id_prod === productoSeleccionado
@@ -138,95 +213,128 @@ const EnvioModal: React.FC<EnvioModalProps> = ({
     }
   };
 
+  const actualizarPrecioUnitario = (index: number, valor: number) => {
+    const nuevosProductos = [...productosEnvio];
+    nuevosProductos[index] = { ...nuevosProductos[index], precio_unitario: valor };
+    setProductosEnvio(nuevosProductos);
+  };
+
   const productoSeleccionadoInfo = productos.find(p => p.id_prod === productoSeleccionado);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-lg shadow-lg w-[90vw] max-w-2xl max-h-[90vh] overflow-y-auto">
-        <h2 className="text-xl font-bold mb-4">
-          {envioEditar ? 'Editar Envío' : 'Nuevo Envío'}
-        </h2>
-        <form onSubmit={handleSubmit}>
+    <Modal isOpen={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <Modal.Backdrop>
+      <Modal.Container placement="center" scroll="inside" size="full">
+        <Modal.Dialog>
+          <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+            <Modal.Header>
+              <Modal.Heading>{envioEditar ? 'Editar Envío' : 'Nuevo Envío'}</Modal.Heading>
+            </Modal.Header>
+            <Modal.Body>
+              <ErrorFormulario errores={errores} />
           {/* Datos del envío */}
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium mb-1">Proveedor:</label>
-              <select
-                value={envio.proveedor}
-                onChange={(e) => setEnvio({ ...envio, proveedor: e.target.value })}
-                className="w-full p-2 border rounded"
+              <Selector
+                valor={envio.proveedor || ''}
+                onChange={(v) => setEnvio({ ...envio, proveedor: v })}
+                opciones={[
+                  { valor: 'WeShipYou', etiqueta: 'WeShipYou' },
+                  { valor: 'Otro', etiqueta: 'Otro' },
+                ]}
                 required
-              >
-                <option value="WeShipYou">WeShipYou</option>
-                <option value="Otro">Otro</option>
-              </select>
+              />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Estado:</label>
-              <select
-                value={envio.estado}
-                onChange={(e) => setEnvio({ ...envio, estado: e.target.value })}
-                className="w-full p-2 border rounded"
+              <Selector
+                valor={envio.estado || ''}
+                onChange={(v) => setEnvio({ ...envio, estado: v })}
+                opciones={[
+                  { valor: 'pendiente', etiqueta: 'Pendiente' },
+                  { valor: 'recibido', etiqueta: 'Recibido' },
+                ]}
                 required
-              >
-                <option value="pendiente">Pendiente</option>
-                <option value="recibido">Recibido</option>
-              </select>
+              />
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium mb-1">Costo Envío (USD):</label>
-              <input
-                type="number"
+              <NumInput
                 step="0.01"
-                value={Number(envio.costo) === 0 ? '' : envio.costo}
-                onChange={(e) => setEnvio({ ...envio, costo: Number(e.target.value) })}
+                value={envio.costo}
+                onChange={(n) => setEnvio({ ...envio, costo: n })}
                 className="w-full p-2 border rounded"
                 required
               />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Aranceles (USD):</label>
-              <input
-                type="number"
+              <NumInput
                 step="0.01"
-                value={Number(envio.aranceles_usd) === 0 ? '' : envio.aranceles_usd}
-                onChange={(e) => setEnvio({ ...envio, aranceles_usd: Number(e.target.value) })}
+                value={envio.aranceles_usd}
+                onChange={(n) => setEnvio({ ...envio, aranceles_usd: n })}
                 className="w-full p-2 border rounded"
                 required
               />
             </div>
-<div>
+            <div>
               <label className="block text-sm font-medium mb-1">Peso Total (lbs):</label>
-              <input
-                type="number"
+              <NumInput
                 step="0.01"
                 min="0"
-                value={Number(envio.peso_total_lbs) === 0 ? '' : envio.peso_total_lbs}
-                onChange={(e) => {
+                value={envio.peso_total_lbs}
+                onChange={(n) => {
                   setPesoEditado(true);
-                  setEnvio({ ...envio, peso_total_lbs: Number(e.target.value) });
+                  setEnvio({ ...envio, peso_total_lbs: n });
                 }}
                 className="w-full p-2 border rounded"
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-muted mt-1">
                 Se calcula desde el peso de los productos; se puede ajustar manualmente.
               </p>
             </div>
           </div>
 
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-1">Otros costos del camino (USD):</label>
+            <NumInput
+              step="0.01"
+              min="0"
+              value={envio.otros_costos_usd}
+              onChange={(n) => setEnvio({ ...envio, otros_costos_usd: n })}
+              className="w-full p-2 border rounded"
+            />
+            <p className="text-xs text-muted mt-1">
+              Comisiones, gestoría u otros gastos que no son flete ni aranceles. Se reparten entre
+              todas las unidades del envío para calcular el costo real.
+            </p>
+          </div>
+
+          {totalUnidades > 0 && (
+            <div className="mb-4 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 rounded-lg p-3">
+              <p className="text-sm text-blue-900 dark:text-blue-200">
+                Overhead total (flete + aranceles + otros):{' '}
+                <strong>${overheadTotal.toFixed(2)}</strong> ·{' '}
+                {totalUnidades} unidad{totalUnidades === 1 ? '' : 'es'} →{' '}
+                <strong>${overheadPorUnidad.toFixed(2)}</strong> por unidad
+              </p>
+            </div>
+          )}
+
           {envio.estado === 'recibido' && (
             <div className="mb-4">
               <label className="block text-sm font-medium mb-1">Fecha Recepción:</label>
-              <input
+              <Input
+                fullWidth
                 type="datetime-local"
                 value={envio.fecha_recepcion ? new Date(envio.fecha_recepcion).toISOString().slice(0, 16) : ''}
                 onChange={(e) => setEnvio({ ...envio, fecha_recepcion: new Date(e.target.value) })}
-                className="w-full p-2 border rounded"
               />
             </div>
           )}
@@ -237,13 +345,23 @@ const EnvioModal: React.FC<EnvioModalProps> = ({
             
             {/* Tabla de productos agregados */}
             <div className="mb-4">
+              {envioRecibido && envio.estado === 'recibido' && (
+                <div className="mb-2 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 rounded-lg p-2">
+                  <p className="text-xs text-amber-800 dark:text-amber-300">
+                    Este envío ya fue recibido: sus productos están bloqueados para no alterar el
+                    stock ni el costo FIFO de ventas ya registradas. Devuélvelo a «Pendiente» si
+                    necesitas corregirlo.
+                  </p>
+                </div>
+              )}
               <table className="min-w-full border">
-                <thead className="bg-gray-100">
+                <thead className="bg-surface-secondary">
                   <tr>
                     <th className="p-2 border">Producto</th>
                     <th className="p-2 border">Cantidad</th>
                     <th className="p-2 border">Peso (lbs)</th>
                     <th className="p-2 border">Precio Unitario (USD)</th>
+                    <th className="p-2 border">Costo Real (USD)</th>
                     <th className="p-2 border">Subtotal (USD)</th>
                     <th className="p-2 border">Acciones</th>
                   </tr>
@@ -254,16 +372,35 @@ const EnvioModal: React.FC<EnvioModalProps> = ({
                       <td className="p-2 border">{pe.producto.nombre_prod}</td>
                       <td className="p-2 border">{pe.cantidad}</td>
                       <td className="p-2 border">{Number(pe.producto.peso_lbs || 0).toFixed(2)}</td>
-                      <td className="p-2 border">{Number(pe.precio_unitario).toFixed(2)}</td>
-                      <td className="p-2 border">{(Number(pe.cantidad) * Number(pe.precio_unitario)).toFixed(2)}</td>
                       <td className="p-2 border">
-                        <button
+                        {productosBloqueados ? (
+                          Number(pe.precio_unitario).toFixed(2)
+                        ) : (
+                          <NumInput
+                            step="0.01"
+                            min="0"
+                            value={pe.precio_unitario}
+                            onChange={(n) => actualizarPrecioUnitario(index, n)}
+                            className="w-24 p-1 border rounded"
+                          />
+                        )}
+                      </td>
+                      <td className="p-2 border text-blue-700 dark:text-blue-400">
+                        {(Number(pe.precio_unitario) + overheadPorUnidad).toFixed(2)}
+                      </td>
+                      <td className="p-2 border">
+                        {(Number(pe.cantidad) * Number(pe.precio_unitario)).toFixed(2)}
+                      </td>
+                      <td className="p-2 border">
+                        <Button
                           type="button"
-                          onClick={() => eliminarProducto(index)}
-                          className="px-2 py-1 bg-red-500 text-white rounded text-sm"
+                          variant="danger"
+                          size="sm"
+                          onPress={() => eliminarProducto(index)}
+                          isDisabled={productosBloqueados}
                         >
                           Eliminar
-                        </button>
+                        </Button>
                       </td>
                     </tr>
                   ))}
@@ -272,61 +409,57 @@ const EnvioModal: React.FC<EnvioModalProps> = ({
             </div>
 
             {/* Formulario para agregar productos */}
-            <div className="grid grid-cols-3 gap-2 mb-2">
+            <div className={`grid grid-cols-3 gap-2 mb-2 ${productosBloqueados ? 'opacity-50 pointer-events-none' : ''}`}>
               <div>
                 <label className="block text-sm font-medium mb-1">Producto:</label>
-                <select
-                  value={productoSeleccionado}
-                  onChange={(e) => setProductoSeleccionado(e.target.value)}
-                  className="w-full p-2 border rounded"
-                >
-                  <option value="">Seleccionar producto</option>
-                  {productos.map((p) => (
-                    <option key={p.id_prod} value={p.id_prod}>
-                      {p.nombre_prod}
-                    </option>
-                  ))}
-                </select>
+                <Selector
+                  valor={productoSeleccionado}
+                  onChange={setProductoSeleccionado}
+                  opciones={productos.map((p) => ({ valor: p.id_prod, etiqueta: p.nombre_prod }))}
+                  placeholder="Seleccionar producto"
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Cantidad:</label>
-                <input
-                  type="number"
+                <NumInput
                   min="1"
-                  value={Number(cantidad) === 0 ? '' : cantidad}
-                  onChange={(e) => setCantidad(Number(e.target.value))}
+                  value={cantidad}
+                  onChange={setCantidad}
                   className="w-full p-2 border rounded"
                 />
               </div>
               <div className="flex items-end">
-                <button
+                <Button
                   type="button"
-                  onClick={agregarProducto}
-                  className="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                  onPress={agregarProducto}
+                  className="w-full bg-success text-success-foreground"
                 >
                   + Agregar
-                </button>
+                </Button>
               </div>
             </div>
             {productoSeleccionadoInfo && (
-              <p className="text-xs text-gray-600 mb-4">
+              <p className="text-xs text-muted mb-4">
                 Precio: ${Number(productoSeleccionadoInfo.costo).toFixed(2)} USD · Peso:{' '}
                 {Number(productoSeleccionadoInfo.peso_lbs || 0).toFixed(2)} lbs
               </p>
             )}
           </div>
 
-          <div className="flex justify-end gap-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 rounded">
-              Cancelar
-            </button>
-            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded">
-              {envioEditar ? 'Guardar Cambios' : 'Crear Envío'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+          </Modal.Body>
+            <Modal.Footer>
+              <Button type="button" variant="secondary" onPress={onClose}>
+                Cancelar
+              </Button>
+              <Button variant="primary" type="submit">
+                {envioEditar ? 'Guardar Cambios' : 'Crear Envío'}
+              </Button>
+            </Modal.Footer>
+          </form>
+        </Modal.Dialog>
+      </Modal.Container>
+      </Modal.Backdrop>
+    </Modal>
   );
 };
 

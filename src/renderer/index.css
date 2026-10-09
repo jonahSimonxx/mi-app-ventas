@@ -1,6 +1,39 @@
 @import "tailwindcss";
+@import "@heroui/styles";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* HeroUI usa `h-(--visual-viewport-height)` en modal.css, drawer.css y alert-dialog.css
+   (7 usos), pero la variable NO viene definida en ningún CSS de @heroui/styles ni la fija
+   ningún JS. Sin ella el `height` computa a `auto`, y se rompe la cadena entera del scroll:
+   `.modal__container` queda con altura indefinida → `.modal__dialog--scroll-inside` recibe
+   `max-height: 100%` contra un padre sin altura definite (equivale a `none`) → el dialog
+   crece hasta su contenido y `.modal__body` nunca scrollea, así que los campos de abajo
+   quedan fuera de la ventana. Se define una sola vez, acá.
+   `dvh` es la altura del viewport visible; `vh` queda como fallback. */
+:root {
+  --visual-viewport-height: 100vh;
+}
+
+@supports (height: 100dvh) {
+  :root {
+    --visual-viewport-height: 100dvh;
+  }
+}
 
 body {
-  background-color: #f3f4f6;
-  color: #1f2937;
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+/* Controles crudos que siguen a mano (NumInput y los dos checkbox): no llevan la
+   clase `.input` de HeroUI, así que en oscuro se les da fondo y borde de la paleta
+   gris para que no hereden el borde currentColor. El `:not(.input)` es a propósito:
+   sin él esta regla (especificidad 0,1,1) pisa a `.input` (0,1,0) y les pone el gris
+   plano encima a los Inputs de HeroUI. Ya no quedan `<select>` crudos. */
+.dark input:not(.input),
+.dark textarea:not(.input) {
+  background-color: #1f2937;
+  border-color: #374151;
+  color: #e5e7eb;
 }

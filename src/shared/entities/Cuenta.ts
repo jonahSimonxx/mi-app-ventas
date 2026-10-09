@@ -1,8 +1,7 @@
-import { Entity, PrimaryColumn, Column, ManyToOne, JoinColumn, Check } from 'typeorm';
+import { Entity, PrimaryColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { Moneda } from './Moneda';
 
 @Entity('Cuenta')
-@Check(`id_cuenta IN (1, 2, 3, 4, 5, 6)`)
 export class Cuenta {
   @PrimaryColumn({ type: 'numeric' })
   id_cuenta!: string;

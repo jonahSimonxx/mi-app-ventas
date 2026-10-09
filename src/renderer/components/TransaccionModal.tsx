@@ -2,6 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Transaccion } from '../../shared/entities/Transaccion';
 import { Cuenta } from '../../shared/entities/Cuenta';
 import { Moneda } from '../../shared/entities/Moneda';
+import NumInput from './NumInput';
+import ErrorFormulario from './ErrorFormulario';
+import { Modal } from '@heroui/react/modal';
+import { Button } from '@heroui/react/button';
+import { Input } from '@heroui/react/input';
+import { TextArea } from '@heroui/react/textarea';
+import Selector from './Selector';
 
 interface TransaccionModalProps {
   isOpen: boolean;
@@ -20,6 +27,7 @@ const TransaccionModal: React.FC<TransaccionModalProps> = ({
   cuentas,
   monedas,
 }) => {
+  const [errores, setErrores] = useState<string[]>([]);
   const [transaccion, setTransaccion] = useState<Partial<Transaccion>>({
     tipo: 'transferencia',
     monto_origen: 0,
@@ -67,6 +75,34 @@ const TransaccionModal: React.FC<TransaccionModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // ========== VALIDACIÓN ==========
+    const errores: string[] = [];
+
+    if (!cuentaOrigenId || !cuentaDestinoId) {
+      errores.push('Elegí la cuenta de origen y la de destino.');
+    } else if (cuentaOrigenId === cuentaDestinoId) {
+      // Una transferencia a la misma cuenta no mueve nada: infla un saldo y defla el otro
+      // en la misma fila, y el total del mes sigue dando cero. Es un error de carga.
+      errores.push('La cuenta de origen y la de destino son la misma.');
+    }
+
+    if (Number(transaccion.monto_origen) <= 0) {
+      errores.push('El monto a enviar tiene que ser mayor que 0.');
+    }
+
+    if (Number(transaccion.tasa_cambio) <= 0) {
+      // Con tasa 0 el "monto recibido" queda en 0 y la transacción parece un Peaks de caja gratis.
+      errores.push('La tasa de cambio tiene que ser mayor que 0 (usá 1 si es la misma moneda).');
+    }
+
+    if (Number(transaccion.comision) < 0) {
+      errores.push('La comisión no puede ser negativa.');
+    }
+
+    setErrores(errores);
+    if (errores.length > 0) return;
+
     onSave({
       ...transaccion,
       cuenta_origen: { id_cuenta: cuentaOrigenId } as Cuenta,
@@ -86,23 +122,27 @@ const TransaccionModal: React.FC<TransaccionModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-lg shadow-lg w-[90vw] max-w-2xl max-h-[90vh] overflow-y-auto">
-        <h2 className="text-xl font-bold mb-4">
-          {transaccionEditar ? 'Editar Transacción' : 'Nueva Transacción'}
-        </h2>
-        <form onSubmit={handleSubmit}>
-          <p className="text-xs text-gray-600 mb-4">
+    <Modal isOpen={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <Modal.Backdrop>
+      <Modal.Container placement="center" scroll="inside" size="lg">
+        <Modal.Dialog>
+          <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+            <Modal.Header>
+              <Modal.Heading>{transaccionEditar ? 'Editar Transacción' : 'Nueva Transacción'}</Modal.Heading>
+            </Modal.Header>
+            <Modal.Body>
+              <ErrorFormulario errores={errores} />
+          <p className="text-foreground/70 text-xs mb-4">
             Movimiento entre cuentas · la comisión es lo que cobra la plataforma/peer
           </p>
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium mb-1">Fecha:</label>
-              <input
+              <Input fullWidth
                 type="datetime-local"
                 value={new Date(transaccion.fecha || new Date()).toISOString().slice(0, 16)}
                 onChange={(e) => setTransaccion({ ...transaccion, fecha: new Date(e.target.value) })}
-                className="w-full p-2 border rounded"
+               
                 required
               />
             </div>
@@ -111,70 +151,60 @@ const TransaccionModal: React.FC<TransaccionModalProps> = ({
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium mb-1">Cuenta Origen:</label>
-              <select
-                value={cuentaOrigenId}
-                onChange={(e) => setCuentaOrigenId(e.target.value)}
-                className="w-full p-2 border rounded"
+              <Selector
+                valor={cuentaOrigenId || ''}
+                onChange={(v) => setCuentaOrigenId(v)}
+                opciones={cuentas.map((c) => ({
+                  valor: String(c.id_cuenta),
+                  etiqueta: `${c.id_cuenta} - ${c.nombre} (${c.moneda?.codigo})`,
+                }))}
+                placeholder="Seleccionar cuenta origen"
                 required
-              >
-                <option value="">Seleccionar cuenta origen</option>
-                {cuentas.map((c) => (
-                  <option key={c.id_cuenta} value={c.id_cuenta}>
-                    {c.id_cuenta} - {c.nombre} ({c.moneda?.codigo})
-                  </option>
-                ))}
-              </select>
+              />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Cuenta Destino:</label>
-              <select
-                value={cuentaDestinoId}
-                onChange={(e) => setCuentaDestinoId(e.target.value)}
-                className="w-full p-2 border rounded"
+              <Selector
+                valor={cuentaDestinoId || ''}
+                onChange={(v) => setCuentaDestinoId(v)}
+                opciones={cuentas.map((c) => ({
+                  valor: String(c.id_cuenta),
+                  etiqueta: `${c.id_cuenta} - ${c.nombre} (${c.moneda?.codigo})`,
+                }))}
+                placeholder="Seleccionar cuenta destino"
                 required
-              >
-                <option value="">Seleccionar cuenta destino</option>
-                {cuentas.map((c) => (
-                  <option key={c.id_cuenta} value={c.id_cuenta}>
-                    {c.id_cuenta} - {c.nombre} ({c.moneda?.codigo})
-                  </option>
-                ))}
-              </select>
+              />
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium mb-1">Monto Origen:</label>
-              <input
-                type="number"
+              <NumInput
                 step="0.01"
-                value={Number(transaccion.monto_origen) === 0 ? '' : transaccion.monto_origen}
-                onChange={(e) => setTransaccion({ ...transaccion, monto_origen: Number(e.target.value) })}
+                value={transaccion.monto_origen}
+                onChange={(n) => setTransaccion({ ...transaccion, monto_origen: n })}
                 className="w-full p-2 border rounded"
                 required
               />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Tasa de Cambio:</label>
-              <input
-                type="number"
+              <NumInput
                 step="0.0001"
-                value={Number(transaccion.tasa_cambio) === 0 ? '' : transaccion.tasa_cambio}
-                onChange={(e) => setTransaccion({ ...transaccion, tasa_cambio: Number(e.target.value) })}
+                value={transaccion.tasa_cambio}
+                onChange={(n) => setTransaccion({ ...transaccion, tasa_cambio: n })}
                 className="w-full p-2 border rounded"
                 required
               />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Monto Destino (calculado):</label>
-              <input
-                type="number"
-                step="0.01"
-                value={transaccion.monto_destino}
-                onChange={(e) => setTransaccion({ ...transaccion, monto_destino: Number(e.target.value) })}
-                className="w-full p-2 border rounded bg-gray-100"
+              <Input fullWidth
+                type="text"
+                value={Number(transaccion.monto_destino || 0).toFixed(2)}
                 readOnly
+                className="bg-surface-secondary"
               />
             </div>
           </div>
@@ -182,11 +212,11 @@ const TransaccionModal: React.FC<TransaccionModalProps> = ({
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium mb-1">Comisión:</label>
-              <input
-                type="number"
+              <NumInput
                 step="0.01"
-                value={Number(transaccion.comision) === 0 ? '' : transaccion.comision}
-                onChange={(e) => setTransaccion({ ...transaccion, comision: Number(e.target.value) })}
+                min="0"
+                value={transaccion.comision}
+                onChange={(n) => setTransaccion({ ...transaccion, comision: n })}
                 className="w-full p-2 border rounded"
               />
             </div>
@@ -194,25 +224,28 @@ const TransaccionModal: React.FC<TransaccionModalProps> = ({
 
           <div className="mb-4">
             <label className="block text-sm font-medium mb-1">Descripción:</label>
-            <textarea
+            <TextArea fullWidth
               value={transaccion.descripcion || ''}
               onChange={(e) => setTransaccion({ ...transaccion, descripcion: e.target.value })}
-              className="w-full p-2 border rounded"
+             
               rows={3}
             />
           </div>
 
-          <div className="flex justify-end gap-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 rounded">
-              Cancelar
-            </button>
-            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded">
-              {transaccionEditar ? 'Guardar Cambios' : 'Crear Transacción'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+          </Modal.Body>
+            <Modal.Footer>
+              <Button type="button" variant="secondary" onPress={onClose}>
+                Cancelar
+              </Button>
+              <Button variant="primary" type="submit">
+                {transaccionEditar ? 'Guardar Cambios' : 'Crear Transacción'}
+              </Button>
+            </Modal.Footer>
+          </form>
+        </Modal.Dialog>
+      </Modal.Container>
+      </Modal.Backdrop>
+    </Modal>
   );
 };
 

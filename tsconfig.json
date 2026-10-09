@@ -18,6 +18,6 @@
     "ignoreDeprecations": "6.0",
     "typeRoots": ["./node_modules/@types", "./src/types"]
   },
-  "include": ["src/**/*"],
+  "include": ["src/main/**/*", "src/shared/**/*", "src/types/**/*"],
   "exclude": ["node_modules"]
 }

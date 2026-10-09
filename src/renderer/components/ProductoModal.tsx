@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import ErrorFormulario from './ErrorFormulario';
 import { Producto } from '../../shared/entities/Producto';
+import NumInput from './NumInput';
+import { Modal } from '@heroui/react/modal';
+import { Button } from '@heroui/react/button';
+import { Input } from '@heroui/react/input';
+import { TextArea } from '@heroui/react/textarea';
 
 interface ProductoModalProps {
   isOpen: boolean;
@@ -10,6 +16,7 @@ interface ProductoModalProps {
 }
 
 const ProductoModal: React.FC<ProductoModalProps> = ({ isOpen, onClose, onSave, productoEditar, tasaUSD = 1 }) => {
+  const [errores, setErrores] = useState<string[]>([]);
   const [producto, setProducto] = useState<Partial<Producto>>({
     id_prod: '',
     nombre_prod: '',
@@ -21,6 +28,7 @@ const ProductoModal: React.FC<ProductoModalProps> = ({ isOpen, onClose, onSave, 
   });
 
   useEffect(() => {
+    setErrores([]);
     if (productoEditar) {
       setProducto(productoEditar);
     } else {
@@ -38,6 +46,29 @@ const ProductoModal: React.FC<ProductoModalProps> = ({ isOpen, onClose, onSave, 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // ========== VALIDACIÓN ==========
+    const errores: string[] = [];
+
+    if (!String(producto.nombre_prod || '').trim()) {
+      errores.push('El nombre del producto es obligatorio.');
+    }
+
+    if (Number(producto.costo) < 0) {
+      errores.push('El costo no puede ser negativo.');
+    }
+
+    if (Number(producto.precio_venta) < 0) {
+      errores.push('El precio de venta no puede ser negativo.');
+    }
+
+    if (Number(producto.peso_lbs) < 0) {
+      errores.push('El peso por unidad no puede ser negativo.');
+    }
+
+    setErrores(errores);
+    if (errores.length > 0) return;
+
     onSave(producto);
     onClose();
   };
@@ -45,104 +76,112 @@ const ProductoModal: React.FC<ProductoModalProps> = ({ isOpen, onClose, onSave, 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-lg shadow-lg w-96">
-        <h2 className="text-xl font-bold mb-4">
-          {productoEditar ? 'Editar Producto' : 'Nuevo Producto'}
-        </h2>
-        <form onSubmit={handleSubmit}>
+    <Modal isOpen={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <Modal.Backdrop>
+      <Modal.Container placement="center" scroll="inside" size="sm">
+        <Modal.Dialog>
+          <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+            <Modal.Header>
+              <Modal.Heading>{productoEditar ? 'Editar Producto' : 'Nuevo Producto'}</Modal.Heading>
+              <Modal.CloseTrigger aria-label="Cerrar" />
+            </Modal.Header>
+            <Modal.Body>
+              <ErrorFormulario errores={errores} />
           <div className="mb-4">
             <label className="block text-sm font-medium mb-1">ID (automático):</label>
-            <input
+            <Input
+              fullWidth
               type="text"
               value={productoEditar ? producto.id_prod : ''}
               placeholder={productoEditar ? '' : 'Se generará automáticamente'}
               onChange={(e) => setProducto({ ...producto, id_prod: e.target.value })}
-              className="w-full p-2 border rounded bg-gray-100"
+              className="bg-surface-secondary"
               readOnly
             />
           </div>
           <div className="mb-4">
             <label className="block text-sm font-medium mb-1">Nombre:</label>
-            <input
+            <Input
+              fullWidth
               type="text"
               value={producto.nombre_prod}
               onChange={(e) => setProducto({ ...producto, nombre_prod: e.target.value })}
-              className="w-full p-2 border rounded"
               required
             />
           </div>
           <div className="mb-4">
             <label className="block text-sm font-medium mb-1">Descripción:</label>
-            <textarea
+            <TextArea
+              fullWidth
               value={producto.descripcion || ''}
               onChange={(e) => setProducto({ ...producto, descripcion: e.target.value })}
-              className="w-full p-2 border rounded"
             />
           </div>
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium mb-1">Costo (USD):</label>
-              <input
-                type="number"
+              <NumInput
                 step="0.01"
-                value={Number(producto.costo) === 0 ? '' : producto.costo}
-                onChange={(e) => setProducto({ ...producto, costo: Number(e.target.value) })}
+                value={producto.costo}
+                onChange={(n) => setProducto({ ...producto, costo: n })}
                 className="w-full p-2 border rounded"
                 required
               />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Precio Venta (USD):</label>
-              <input
-                type="number"
+              <NumInput
                 step="0.01"
-                value={Number(producto.precio_venta) === 0 ? '' : producto.precio_venta}
-                onChange={(e) => setProducto({ ...producto, precio_venta: Number(e.target.value) })}
+                value={producto.precio_venta}
+                onChange={(n) => setProducto({ ...producto, precio_venta: n })}
                 className="w-full p-2 border rounded"
                 required
               />
             </div>
           </div>
-          <div className="mb-4 text-sm text-gray-700">
+          <div className="mb-4 text-sm text-foreground/70">
             Precio en CUP (tasa actual 1 USD = {Number(tasaUSD).toFixed(2)} CUP):{' '}
-            <span className="font-semibold text-green-700">
+            <span className="font-semibold text-green-700 dark:text-green-400">
               {(Number(producto.precio_venta || 0) * Number(tasaUSD)).toFixed(2)} CUP
             </span>
           </div>
           <div className="mb-4 grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1">Stock:</label>
-              <input
-                type="number"
-                value={Number(producto.stock_actual) === 0 ? '' : producto.stock_actual}
-                onChange={(e) => setProducto({ ...producto, stock_actual: Number(e.target.value) })}
+              <NumInput
+                allowNegative
+                value={producto.stock_actual}
+                onChange={(n) => setProducto({ ...producto, stock_actual: n })}
                 className="w-full p-2 border rounded"
               />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Peso (lbs):</label>
-              <input
-                type="number"
+              <NumInput
                 step="0.01"
-                value={Number(producto.peso_lbs) === 0 ? '' : producto.peso_lbs}
-                onChange={(e) => setProducto({ ...producto, peso_lbs: Number(e.target.value) })}
+                min="0"
+                value={producto.peso_lbs}
+                onChange={(n) => setProducto({ ...producto, peso_lbs: n })}
                 className="w-full p-2 border rounded"
               />
             </div>
           </div>
-          <div className="flex justify-end gap-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 rounded">
-              Cancelar
-            </button>
-            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded">
-              {productoEditar ? 'Guardar Cambios' : 'Crear Producto'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+          </Modal.Body>
+            <Modal.Footer>
+              <Button type="button" variant="secondary" onPress={onClose}>
+                Cancelar
+              </Button>
+              <Button variant="primary" type="submit">
+                {productoEditar ? 'Guardar Cambios' : 'Crear Producto'}
+              </Button>
+            </Modal.Footer>
+          </form>
+        </Modal.Dialog>
+      </Modal.Container>
+      </Modal.Backdrop>
+    </Modal>
   );
 };
 
 export default ProductoModal;
+

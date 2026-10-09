@@ -1,7 +1,6 @@
-import { Entity, PrimaryColumn, Column, Check } from 'typeorm';
+import { Entity, PrimaryColumn, Column } from 'typeorm';
 
 @Entity('Producto')
-@Check(`stock_actual >= 0`)
 export class Producto {
   @PrimaryColumn({ type: 'varchar', length: 50 })
   id_prod!: string;

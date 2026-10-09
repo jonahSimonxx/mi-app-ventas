@@ -3,6 +3,63 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 
+// CA pública de Supabase (Root + Intermediate 2021), capturada del handshake real del
+// pooler configurado en `.env` y verificada: el certificado del pooler valida contra
+// estas dos. Sin pinning, Node rechaza la cadena con "self-signed certificate in
+// certificate chain" porque la Root 2021 de Supabase no está en el store del sistema.
+// Seguridad (Fase 9.1): se incrusta en el script hijo y se pasa como `ca` a tls.connect.
+const SUPABASE_CA_PEM = `-----BEGIN CERTIFICATE-----
+MIIDvzCCAqegAwIBAgIUBhalAwMQ7BA1NH7td4msPPwxHzowDQYJKoZIhvcNAQEL
+BQAwazELMAkGA1UEBhMCVVMxEDAOBgNVBAgMB0RlbHdhcmUxEzARBgNVBAcMCk5l
+dyBDYXN0bGUxFTATBgNVBAoMDFN1cGFiYXNlIEluYzEeMBwGA1UEAwwVU3VwYWJh
+c2UgUm9vdCAyMDIxIENBMB4XDTIzMTAyNDA3NTM0NVoXDTMzMTAyMTA3NTM0NVow
+czELMAkGA1UEBhMCVVMxEDAOBgNVBAgMB0RlbHdhcmUxEzARBgNVBAcMCk5ldyBD
+YXN0bGUxFTATBgNVBAoMDFN1cGFiYXNlIEluYzEmMCQGA1UEAwwdU3VwYWJhc2Ug
+SW50ZXJtZWRpYXRlIDIwMjEgQ0EwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEK
+AoIBAQDOAMhXirH+EGIn8GaDp8T53rEogf7kM8OKW2uQ5yU/wxPa+w8BXgTzWy3W
+JDAUhZE78oUtAd9kk5zKPrLXoT3W61PPnOc/9dceL5gB7/78m7EKCySziAA2c8vR
+fnYPfznedDXi2lryttSYmMf2qbZDErAxwJDUm6cyq+HLAfb2qUH28u6jP8I9GDtG
+PkQnjqtiRXEKjbTc/ntqCQrhtFK02mHkMSju7nEpkNYryunv5n/c9mrRY9/8GwmP
+3uSZz3CQ8yQ/E0f8T9gCca2TcKuTQmW2pQqtHv1MuZ3jfJE5Nr9+Fap5kdzDJtdf
+BdKofVNZlnYIru5yhUZywY3xYFfHAgMBAAGjUzBRMB0GA1UdDgQWBBQVoFMuvXJ9
+Yv+QJr6/GJX0Z0VA+jAfBgNVHSMEGDAWgBSo17l2N9gs7ZISJp4OMiTVLWlGLDAP
+BgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQAwdx0XJRHTf/crGpsr
+n07uRziGSswWWTe+kDATMQeRZAEW3grVki5LDzs+JLbVIJYhRXFRXkqTRJdSGAgH
+/0LNw7GDUwKOLnIRoYR3ILqSFZbkXbrYQ4Yir5yQZWgiNhRNfpEnMMIEQEZoSuFn
+8Uh6M4HNfVuwBPgV0/gvKEja3DjJgwPAYzoXvKh5m3fKTt2c22YcTDdZTUDfrst6
+Vpt/M03FY6D+897yfNR+nEzeEwjzHMZkperTwVfmBdyXIgIWexQ/whoky7+I4pjz
+eLtkPBlwE3WB9fGZVjZqdUNSasS8mmWIyxHPttTzTHHmElDw2OQ/s9HjfCxJztk2
+VCgJ
+-----END CERTIFICATE-----
+-----BEGIN CERTIFICATE-----
+MIIDxDCCAqygAwIBAgIUbLxMod62P2ktCiAkxnKJwtE9VPYwDQYJKoZIhvcNAQEL
+BQAwazELMAkGA1UEBhMCVVMxEDAOBgNVBAgMB0RlbHdhcmUxEzARBgNVBAcMCk5l
+dyBDYXN0bGUxFTATBgNVBAoMDFN1cGFiYXNlIEluYzEeMBwGA1UEAwwVU3VwYWJh
+c2UgUm9vdCAyMDIxIENBMB4XDTIxMDQyODEwNTY1M1oXDTMxMDQyNjEwNTY1M1ow
+azELMAkGA1UEBhMCVVMxEDAOBgNVBAgMB0RlbHdhcmUxEzARBgNVBAcMCk5ldyBD
+YXN0bGUxFTATBgNVBAoMDFN1cGFiYXNlIEluYzEeMBwGA1UEAwwVU3VwYWJhc2Ug
+Um9vdCAyMDIxIENBMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqQXW
+QyHOB+qR2GJobCq/CBmQ40G0oDmCC3mzVnn8sv4XNeWtE5XcEL0uVih7Jo4Dkx1Q
+DmGHBH1zDfgs2qXiLb6xpw/CKQPypZW1JssOTMIfQppNQ87K75Ya0p25Y3ePS2t2
+GtvHxNjUV6kjOZjEn2yWEcBdpOVCUYBVFBNMB4YBHkNRDa/+S4uywAoaTWnCJLUi
+cvTlHmMw6xSQQn1UfRQHk50DMCEJ7Cy1RxrZJrkXXRP3LqQL2ijJ6F4yMfh+Gyb4
+O4XajoVj/+R4GwywKYrrS8PrSNtwxr5StlQO8zIQUSMiq26wM8mgELFlS/32Uclt
+NaQ1xBRizkzpZct9DwIDAQABo2AwXjALBgNVHQ8EBAMCAQYwHQYDVR0OBBYEFKjX
+uXY32CztkhImng4yJNUtaUYsMB8GA1UdIwQYMBaAFKjXuXY32CztkhImng4yJNUt
+aUYsMA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggEBAB8spzNn+4VU
+tVxbdMaX+39Z50sc7uATmus16jmmHjhIHz+l/9GlJ5KqAMOx26mPZgfzG7oneL2b
+VW+WgYUkTT3XEPFWnTp2RJwQao8/tYPXWEJDc0WVQHrpmnWOFKU/d3MqBgBm5y+6
+jB81TU/RG2rVerPDWP+1MMcNNy0491CTL5XQZ7JfDJJ9CCmXSdtTl4uUQnSuv/Qx
+Cea13BX2ZgJc7Au30vihLhub52De4P/4gonKsNHYdbWjg7OWKwNv/zitGDVDB9Y2
+CMTyZKG3XEu5Ghl1LEnI3QmEKsqaCLv12BnVjbkSeZsMnevJPs1Ye6TjjJwdik5P
+o/bKiIz+Fq8=
+-----END CERTIFICATE-----
+`;
+
+// Una sola línea (base64) para poder interpolar la CA dentro del script hijo sin
+// problemas de saltos de línea en strings de JavaScript.
+const SUPABASE_CA_B64 = Buffer.from(SUPABASE_CA_PEM).toString('base64');
+
 const BRIDGE_SCRIPT = `
 const net = require('net');
 const tls = require('tls');
@@ -44,7 +101,16 @@ const server = net.createServer((clientSocket) => {
     if (chunk.length === 0) return;
     if (chunk[0] === 0x53) {
       // 'S' => acepta TLS. Upgrade del socket.
-      const tlsSocket = tls.connect({ socket: raw, rejectUnauthorized: false });
+      // Seguridad (Fase 9.1): se valida el certificado de Supabase (rejectUnauthorized: true)
+      // contra la CA pineada mas arriba. Al usar un socket ya conectado, servername es lo
+      // que se usa para SNI y para verificar el hostname del certificado; sin el, Node usaria
+      // "localhost" y el check fallaria.
+      const tlsSocket = tls.connect({
+        socket: raw,
+        servername: UPSTREAM_HOST,
+        rejectUnauthorized: true,
+        ca: [Buffer.from("${SUPABASE_CA_B64}", 'base64').toString('utf-8')],
+      });
       upstreamSocket = tlsSocket;
       tlsSocket.on('secureConnect', () => {
         upstreamReady = true;
@@ -132,13 +198,26 @@ export async function startDbBridge(): Promise<number> {
       stderrBuf += data.toString();
     });
 
-    bridgeProcess.on('exit', (code) => {
+    bridgeProcess.on('exit', (code, signal) => {
       const parsedPort = parseInt(env.BRIDGE_LISTEN_PORT, 10);
       if (!bridgeReady && code === 0) {
         process.env.BRIDGE_LISTEN_PORT = String(parsedPort);
         bridgeReady = true;
         resolve(parsedPort);
+        return;
       }
+
+      // El bridge es un punto único de fallo: si muere, todas las conexiones del
+      // pool de TypeORM mueren con él y el usuario ve "Connection terminated
+      // unexpectedly" sin poder hacer nada. Se avisa con claridad y se pide reiniciar.
+      if (!shuttingDown) {
+        console.error(
+          `❌ El bridge de base de datos se detuvo inesperadamente (código ${code}, señal ${signal}).` +
+            (stderrBuf ? ` Detalle: ${stderrBuf.slice(0, 300)}` : '') +
+            ' Reinicia la app para reconectar.'
+        );
+      }
+      bridgeProcess = null;
     });
 
     setTimeout(() => {
@@ -149,7 +228,10 @@ export async function startDbBridge(): Promise<number> {
   });
 }
 
+let shuttingDown = false;
+
 export function stopDbBridge(): void {
+  shuttingDown = true;
   if (bridgeProcess) {
     bridgeProcess.kill();
     bridgeProcess = null;

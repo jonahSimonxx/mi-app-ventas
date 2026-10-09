@@ -10,6 +10,11 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { TasaCambioHistorico } from '../../shared/entities/TasaCambioHistorico';
+import NumInput from './NumInput';
+import ErrorFormulario from './ErrorFormulario';
+import { Modal } from '@heroui/react/modal';
+import { Button } from '@heroui/react/button';
+import { Input } from '@heroui/react/input';
 
 interface TasaCambioModalProps {
   isOpen: boolean;
@@ -20,6 +25,7 @@ interface TasaCambioModalProps {
 const hoy = () => new Date().toISOString().slice(0, 10);
 
 const TasaCambioModal: React.FC<TasaCambioModalProps> = ({ isOpen, onClose, onChanged }) => {
+  const [errores, setErrores] = useState<string[]>([]);
   const [historico, setHistorico] = useState<TasaCambioHistorico[]>([]);
   const [cargando, setCargando] = useState(false);
   const [form, setForm] = useState({
@@ -47,6 +53,34 @@ const TasaCambioModal: React.FC<TasaCambioModalProps> = ({ isOpen, onClose, onCh
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // ========== VALIDACIÓN ==========
+    // Una tasa 0 (o vacía) es la peor falla posible acá: `tasa_cambio_historico` es la
+    // fuente de la tasa vigente que usa el autocalculado de montos de las transacciones y
+    // de las ventas, así que un 0 guardado convierte todos los USD a $0 sin que nada falle.
+    const errores: string[] = [];
+
+    if (!form.fecha) {
+      errores.push('Elegí la fecha de la tasa.');
+    }
+
+    if (!(Number(form.usd_to_cup) > 0)) {
+      errores.push('La tasa USD→CUP tiene que ser un número mayor que 0.');
+    }
+
+    for (const [campo, etiqueta] of [
+      ['eur_to_cup', 'EUR→CUP'],
+      ['gbp_to_cup', 'GBP→CUP'],
+    ] as const) {
+      const valor = form[campo];
+      if (valor !== '' && !(Number(valor) > 0)) {
+        errores.push(`La tasa ${etiqueta} quedó en ${valor}: si la vas a dejar, tiene que ser mayor que 0 (o vacía).`);
+      }
+    }
+
+    setErrores(errores);
+    if (errores.length > 0) return;
+
     await window.electronAPI.agregarTasaManual({
       fecha: form.fecha,
       usd_to_cup: Number(form.usd_to_cup),
@@ -54,6 +88,7 @@ const TasaCambioModal: React.FC<TasaCambioModalProps> = ({ isOpen, onClose, onCh
       gbp_to_cup: form.gbp_to_cup === '' ? undefined : Number(form.gbp_to_cup),
       fuente: 'manual',
     });
+    setErrores([]);
     setForm({ fecha: hoy(), usd_to_cup: '', eur_to_cup: '', gbp_to_cup: '' });
     await cargarHistorico();
     onChanged?.();
@@ -75,75 +110,69 @@ const TasaCambioModal: React.FC<TasaCambioModalProps> = ({ isOpen, onClose, onCh
   }));
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-lg shadow-lg w-[800px] max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">Tasas de Cambio</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-800 text-2xl leading-none">
-            ×
-          </button>
-        </div>
+    <Modal isOpen={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <Modal.Backdrop>
+      <Modal.Container placement="center" scroll="inside" size="lg">
+        <Modal.Dialog>
+          <Modal.Header>
+            <Modal.Heading>Tasas de Cambio</Modal.Heading>
+            <Modal.CloseTrigger aria-label="Cerrar" />
+          </Modal.Header>
+          <Modal.Body>
+              <ErrorFormulario errores={errores} />
 
-        {/* Formulario manual */}
-        <form onSubmit={handleSubmit} className="grid grid-cols-4 gap-3 mb-6 items-end">
+        {/* Formulario manual. El <form> es columna flex para que `Modal.Body` pueda
+            scrollear (`.modal__dialog` es flex-col y `.modal__body` usa min-h-0 + flex-1),
+            así que las clases del grid van en un <div> interno. Este modal además no
+            tiene `Modal.Footer`: sus botones viven dentro del propio formulario. */}
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+          <div className="grid grid-cols-4 gap-3 mb-6 items-end">
           <div>
             <label className="block text-sm font-medium mb-1">Fecha</label>
-            <input
+            <Input
+              fullWidth
               type="date"
               value={form.fecha}
               onChange={(e) => setForm({ ...form, fecha: e.target.value })}
-              className="w-full p-2 border rounded"
               required
             />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">USD → CUP</label>
-            <input
-              type="number"
+            <NumInput
               step="0.0001"
               value={form.usd_to_cup}
-              onChange={(e) =>
-                setForm({ ...form, usd_to_cup: e.target.value === '' ? '' : Number(e.target.value) })
-              }
+              onChange={(n) => setForm({ ...form, usd_to_cup: n })}
               className="w-full p-2 border rounded"
               required
             />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">EUR → CUP</label>
-            <input
-              type="number"
+            <NumInput
               step="0.0001"
               value={form.eur_to_cup}
-              onChange={(e) =>
-                setForm({ ...form, eur_to_cup: e.target.value === '' ? '' : Number(e.target.value) })
-              }
+              onChange={(n) => setForm({ ...form, eur_to_cup: n === 0 ? '' : n })}
               className="w-full p-2 border rounded"
             />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">GBP → CUP</label>
-            <input
-              type="number"
+            <NumInput
               step="0.0001"
               value={form.gbp_to_cup}
-              onChange={(e) =>
-                setForm({ ...form, gbp_to_cup: e.target.value === '' ? '' : Number(e.target.value) })
-              }
+              onChange={(n) => setForm({ ...form, gbp_to_cup: n === 0 ? '' : n })}
               className="w-full p-2 border rounded"
             />
           </div>
           <div className="col-span-4 flex gap-2">
-            <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+            <Button type="submit" className="bg-success text-success-foreground">
               + Añadir tasa
-            </button>
-            <button
-              type="button"
-              onClick={handleImportarExcel}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
+            </Button>
+            <Button type="button" variant="primary" onPress={handleImportarExcel}>
               Importar desde Excel
-            </button>
+            </Button>
+          </div>
           </div>
         </form>
 
@@ -163,16 +192,16 @@ const TasaCambioModal: React.FC<TasaCambioModalProps> = ({ isOpen, onClose, onCh
             </ResponsiveContainer>
           </div>
         ) : (
-          <p className="text-gray-500 mb-6">Aún no hay datos históricos para graficar.</p>
+          <p className="text-muted mb-6">Aún no hay datos históricos para graficar.</p>
         )}
 
         {/* Tabla de histórico */}
         <h3 className="text-lg font-semibold mb-2">Histórico</h3>
         {cargando ? (
-          <p className="text-gray-500">Cargando…</p>
+          <p className="text-muted">Cargando…</p>
         ) : (
           <table className="min-w-full border">
-            <thead className="bg-gray-100">
+            <thead className="bg-surface-secondary">
               <tr>
                 <th className="p-2 border">Fecha</th>
                 <th className="p-2 border">USD → CUP</th>
@@ -193,7 +222,7 @@ const TasaCambioModal: React.FC<TasaCambioModalProps> = ({ isOpen, onClose, onCh
               ))}
               {historico.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="p-2 border text-center text-gray-500">
+                  <td colSpan={5} className="p-2 border text-center text-muted">
                     Sin registros.
                   </td>
                 </tr>
@@ -201,8 +230,11 @@ const TasaCambioModal: React.FC<TasaCambioModalProps> = ({ isOpen, onClose, onCh
             </tbody>
           </table>
         )}
-      </div>
-    </div>
+          </Modal.Body>
+        </Modal.Dialog>
+      </Modal.Container>
+      </Modal.Backdrop>
+    </Modal>
   );
 };
 
