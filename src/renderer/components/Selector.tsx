@@ -21,6 +21,11 @@ interface SelectorProps {
   required?: boolean;
   disabled?: boolean;
   fullWidth?: boolean;
+  // La variante `secondary` pinta el trigger con `--default` (gris en claro, gris
+  // oscuro en oscuro), mientras que `primary` usa `--field-background` que en el
+  // tema actual es blanco-sin-borde: sobre una página blanca el control queda
+  // casi invisible (el "óvalo transparente" de los filtros de Envíos/Ventas).
+  variant?: 'primary' | 'secondary';
 }
 
 const Selector: React.FC<SelectorProps> = ({
@@ -31,9 +36,11 @@ const Selector: React.FC<SelectorProps> = ({
   required,
   disabled,
   fullWidth = true,
+  variant = 'primary',
 }) => (
   <Select
     fullWidth={fullWidth}
+    variant={variant}
     selectedKey={valor === '' ? null : valor}
     onChange={(key) => onChange(key === null || key === undefined ? '' : String(key))}
     isRequired={required}
@@ -41,7 +48,10 @@ const Selector: React.FC<SelectorProps> = ({
   >
     <SelectTrigger>
       <SelectValue>
-        {(value) => (value.isPlaceholder ? placeholder : value.selectedText)}
+        {() => {
+          if (valor === '' || valor == null) return placeholder;
+          return opciones.find((o) => o.valor === valor)?.etiqueta || valor;
+        }}
       </SelectValue>
     </SelectTrigger>
     <SelectPopover>

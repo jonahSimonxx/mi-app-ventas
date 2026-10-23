@@ -1834,6 +1834,7 @@ const App: React.FC = () => {
                     { valor: 'recibido', etiqueta: 'Recibido' },
                   ]}
                   fullWidth={false}
+                  variant="secondary"
                 />
                 <Button
                   size="sm"
@@ -2074,6 +2075,7 @@ const App: React.FC = () => {
                     { valor: 'pendiente', etiqueta: 'Pendiente' },
                   ]}
                   fullWidth={false}
+                  variant="secondary"
                 />
                 <Button
                   size="sm"

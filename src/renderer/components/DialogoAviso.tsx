@@ -25,7 +25,7 @@ const DialogoAviso: React.FC<DialogoAvisoProps> = ({ config, onClose }) => {
 
   return (
     <AlertDialog isOpen onOpenChange={onClose}>
-      <AlertDialog.Backdrop />
+      <AlertDialog.Backdrop>
       <AlertDialog.Container>
         <AlertDialog.Dialog>
           <AlertDialog.Header>
@@ -52,6 +52,7 @@ const DialogoAviso: React.FC<DialogoAvisoProps> = ({ config, onClose }) => {
           </AlertDialog.Footer>
         </AlertDialog.Dialog>
       </AlertDialog.Container>
+      </AlertDialog.Backdrop>
     </AlertDialog>
   );
 };
