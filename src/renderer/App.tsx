@@ -1421,6 +1421,7 @@ const App: React.FC = () => {
       fetchPeers();
       fetchFlujosConversion();
     } else if (activeTab === 'ventas') {
+      fetchProductos();
       cargarVentas();
       cargarRentabilidad();
     } else if (activeTab === 'dashboard') {
@@ -2083,6 +2084,7 @@ const App: React.FC = () => {
                   onClick={() => {
                     setVentaEditar(null);
                     setProductosVentaSeleccionada([]);
+                    fetchProductos();
                     setIsVentaModalOpen(true);
                   }}
                 >
@@ -2186,6 +2188,7 @@ const App: React.FC = () => {
               onNuevaVenta={() => {
                 setVentaEditar(null);
                 setProductosVentaSeleccionada([]);
+                fetchProductos();
                 setActiveTab('ventas');
                 setIsVentaModalOpen(true);
               }}

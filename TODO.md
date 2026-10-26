@@ -339,7 +339,7 @@ Decisiones del usuario (todas cerradas):
 - [ ] Configurar proyecto Android con la herramienta elegida
 - [ ] Adaptar entidades y servicios existentes
 - [ ] Crear UI móvil optimizada (bottom tabs, gestures)
-- [ ] Implementar modo offline/online
+- [ ] Implementar modo offline/online (sincronización con PostgreSQL remoto al recuperar conexión)
 - [ ] Testing en dispositivo real
 
 ---

@@ -4,6 +4,7 @@ import { Producto } from '../../shared/entities/Producto';
 import { PreviewCostoVenta } from '../../main/services/rentabilidadService';
 import NumInput from './NumInput';
 import ErrorFormulario from './ErrorFormulario';
+import Selector from './Selector';
 import { Modal, Button, Input, Select, SelectTrigger, SelectValue, SelectPopover, ListBox, ListBoxItem } from '@heroui/react';
 
 interface ProductoEnVenta {
@@ -262,48 +263,32 @@ const VentaModal: React.FC<VentaModalProps> = ({
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium mb-1">Forma de Pago:</label>
-              <Select fullWidth
-                selectedKey={venta.forma_pago}
-                onChange={(key) => {
-                  if (key) setVenta({ ...venta, forma_pago: key as any });
-                }}
-                isRequired
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectPopover>
-                  <ListBox>
-                    <ListBoxItem id="efectivo_cup">Efectivo CUP</ListBoxItem>
-                    <ListBoxItem id="transferencia_cup">CUP Transferencia</ListBoxItem>
-                    <ListBoxItem id="efectivo_usd">Efectivo USD</ListBoxItem>
-                    <ListBoxItem id="usdt">USDT</ListBoxItem>
-                  </ListBox>
-                </SelectPopover>
-              </Select>
+              <Selector
+                valor={venta.forma_pago || ''}
+                onChange={(key) => setVenta({ ...venta, forma_pago: key as any })}
+                opciones={[
+                  { valor: 'efectivo_cup', etiqueta: 'Efectivo CUP' },
+                  { valor: 'transferencia_cup', etiqueta: 'CUP Transferencia' },
+                  { valor: 'efectivo_usd', etiqueta: 'Efectivo USD' },
+                  { valor: 'usdt', etiqueta: 'USDT' },
+                ]}
+                required
+              />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium mb-1">Estado:</label>
-              <Select fullWidth
-                selectedKey={venta.estado}
-                onChange={(key) => {
-                  if (key) setVenta({ ...venta, estado: key as any });
-                }}
-                isRequired
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectPopover>
-                  <ListBox>
-                    <ListBoxItem id="completada">Completada</ListBoxItem>
-                    <ListBoxItem id="pendiente">Pendiente</ListBoxItem>
-                  </ListBox>
-                </SelectPopover>
-              </Select>
+              <Selector
+                valor={venta.estado || ''}
+                onChange={(key) => setVenta({ ...venta, estado: key as any })}
+                opciones={[
+                  { valor: 'completada', etiqueta: 'Completada' },
+                  { valor: 'pendiente', etiqueta: 'Pendiente' },
+                ]}
+                required
+              />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Tasa USD → CUP:</label>
@@ -429,24 +414,14 @@ const VentaModal: React.FC<VentaModalProps> = ({
             <div className="grid grid-cols-3 gap-2 mb-2">
               <div>
                 <label className="block text-sm font-medium mb-1">Producto:</label>
-                <Select fullWidth
-                  selectedKey={productoSeleccionado}
-                  onChange={(key) => setProductoSeleccionado(String(key ?? ''))}
-                  items={productos.map((p) => ({ id_prod: p.id_prod, nombre_prod: p.nombre_prod })) as never}
-                >
-                  <SelectTrigger>
-                    <SelectValue>
-                      {(value) => (value.isPlaceholder ? 'Seleccionar producto' : value.selectedText)}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectPopover>
-                    <ListBox>
-                      {(p: { id_prod: string; nombre_prod: string }) => (
-                        <ListBoxItem id={p.id_prod}>{p.nombre_prod}</ListBoxItem>
-                      )}
-                    </ListBox>
-                  </SelectPopover>
-                </Select>
+                <Selector
+                  valor={productoSeleccionado}
+                  onChange={setProductoSeleccionado}
+                  opciones={productos
+                    .filter((p) => Number(p.stock_actual) > 0)
+                    .map((p) => ({ valor: p.id_prod, etiqueta: p.nombre_prod }))}
+                  placeholder="Seleccionar producto"
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Cantidad:</label>
