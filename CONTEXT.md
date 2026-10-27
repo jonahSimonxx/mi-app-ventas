@@ -261,3 +261,37 @@ Decisión del usuario: "seguridad en general, para la bd y todo lo demás que cr
 - (ninguna — `axios`, `cheerio` y `@types/cheerio` se desinstalaron; `npm install` quitó 23 paquetes del árbol)
 
 ⚠️ **`axios` sigue apareciendo en `node_modules` y es correcto**: ya no es dependencia directa nuestra, pero queda como transitiva de otro paquete. Para confirmar que *nadie* en `src/` los usa, el glob `src\**\*.ts` de PowerShell **no es recursivo** y da falsos negativos: hay que usar la herramienta de búsqueda del editor o `Get-ChildItem -Recurse`.
+
+## 🆕 Últimos cambios (2026-10-27)
+
+### Estado de los datos (BD Supabase)
+- La BD quedó **restaurada a su estado original** tras revertir el intento de importación de los Excel históricos (Diciembre 2025 – Septiembre 2026). **No se importó nada**: el usuario cargará los datos históricos manualmente para no romper nada.
+- Conteos actuales: **10 productos**, **3 envíos** (ids 12, 13, 14), **6 ventas** (ids 3, 4, 15, 16, 21, 22), **10 `ProductoEnvio`**, **11 `ProductoVenta`**, **3 inversiones**.
+- Qué se borró (solo lo generado por el intento de importación): ventas con `descripcion LIKE 'Importado desde Excel%'` y sus `ProductoVenta`, envíos con `id > 14` que no tenían productos, y productos con `id_prod LIKE 'PROD-%'` sin referencias. Las secuencias de `Venta`, `Envio`, `ProductoVenta` y `ProductoEnvio` se reajustaron para que la carga manual siga con IDs consecutivos.
+- **No volver a ejecutar scripts de importación de Excel.** Los temporales usados (`importar_*.js`, `verificar_import.js`, `ver_inv.js`, `estado_db.js`, `limpiar_importacion_excel.js`) se eliminaron y nunca se commitearon.
+
+### ¿Por qué se revirtió?
+La hoja `Inventario` de los Excel solo trae **precio de venta** (no costo) y `Gastos Totales por envio` solo trae totales por envío. Con eso no se puede reconstruir de forma fiable el `ProductoEnvio` (`precio_unitario` por producto) que el FIFO necesita para el costo real. Sin esos lotes, las ventas importadas quedaban con `costo_total_usd = 0` y una ganancia inflada (100 %). Cargarlo a mano evita datos falsos.
+
+### Fix en la app (commit `baefc5d`)
+- `src/renderer/components/VentaModal.tsx`: el selector de producto ahora usa el componente `Selector` (igual que `EnvioModal`) en vez del `Select` anterior, y la lista se filtra a `stock_actual > 0` (solo se venden productos con stock).
+- `src/renderer/App.tsx`: se llama `fetchProductos()` al entrar a la pestaña Ventas, al abrir "Nueva Venta" desde la cabecera y desde el Lobby, para que el selector no muestre datos viejos.
+
+### Trabajar desde otra PC
+La BD es **remota (Supabase)**, así que no hay que copiar datos: ambas PCs ven los mismos registros. Solo hay que preparar el entorno:
+1. `git clone` del repo (o copiar la carpeta) e instalar dependencias: `npm install`.
+2. Crear `.env` en la raíz (está en `.gitignore`, no viaja en git):
+   ```
+   NODE_BIN=C:\ruta\real\de\node.exe   # ruta de node.exe EN ESA PC (la usa dbBridge)
+   DB_HOST=aws-0-us-east-1.pooler.supabase.com
+   DB_PORT=5432
+   DB_USER=postgres.szllqcnfzsbygvzgvqpx
+   DB_PASSWORD=<la del .env de la PC original>
+   DB_NAME=postgres
+   ```
+3. Arrancar en desarrollo: `npm run dev` (levanta Vite + Electron). Alternativa: `npm run build` y luego `npm start`.
+4. Requisitos: Node.js instalado y puerto 5173 libre. El bridge abre un puerto local aleatorio (5433–6533) y valida TLS contra la CA pineada de Supabase; si `NODE_BIN` está mal, el arranque falla con "No se pudo localizar node.exe" (ver la lección 🔌 de Bugs Conocidos).
+5. Antes de tocar datos, usa **"Exportar Respaldo (JSON)"** en el Dashboard (Fase 9.2): es el respaldo real, los datos solo viven en Supabase.
+
+### Backup previo a estos cambios
+- Copia completa del repo en `D:\Proyectos VS\mi-app-ventas-BACKUP-20251026-0217` (solo código; **no** incluye datos, que viven en Supabase).
