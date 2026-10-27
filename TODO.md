@@ -284,9 +284,9 @@ Decisiones del usuario (todas cerradas):
 | **alert** | Avisos no bloqueantes: stock bajo, envío con ventas, peer en uso, pérdida en conversión. |
 | **progress-circle** | Tiempos de carga dentro de la app (indicado por el usuario). Reutilizable para mostrar la tasa efectiva de un flujo de conversión. |
 | **meter** | Espacio ya utilizado en Supabase (indicado por el usuario). Reutilizable para la ganancia del mes frente al máximo objetivo. |
-| **dropdown** | Menú contextual por fila (Editar / Ver / Borrar) para no saturar cada fila de botones. Mientras llega, los botones por fila ya son `Button` de HeroUI (secondary/Editar, danger/Eliminar). |
+| **dropdown** | ⛔ Descartado: un menú contextual por fila contradice la separación explícita de Editar/Eliminar pedida por el usuario. Las filas conservan los dos `Button` (secondary/danger). |
 | **pagination** | Envíos, Ventas y Transacciones cuando la tabla crezca. |
-| **scroll-shadow** | Scroll en tablas largas y en las listas laterales del Dashboard. |
+| **scroll-shadow** | ✅ Scroll horizontal en las tablas crudas de Envío/Venta/TasaCambio; las tablas HeroUI ya traen su propio contenedor. |
 | **card** | ✅ Migradas a `Card` de HeroUI las de resumen (Dashboard ×6 + 6 contenedores de gráfico, Calculadora ×4, Conversión ×5, Transacciones, Rentabilidad por Envío). |
 | **skeleton** | Estados de carga de tablas y gráficos (hoy solo se muestra un texto "Cargando..."). |
 | **separator** | Divisores entre secciones de los modales. |
@@ -295,7 +295,7 @@ Decisiones del usuario (todas cerradas):
 
 ### 📊 Auditoría real (2026-10-27)
 
-Medido en `src/renderer` (no de memoria). **La Fase 4.7 NO está terminada**: faltan 7 componentes + `scroll-shadow` y el tema.
+Medido en `src/renderer` (no de memoria). **La Fase 4.7 quedó cerrada** salvo `dropdown` (descartado a propósito) y `breadcrumbs` (en pausa).
 
 | Componente | Estado | Dónde / qué falta |
 |---|---|---|
@@ -307,21 +307,21 @@ Medido en `src/renderer` (no de memoria). **La Fase 4.7 NO está terminada**: fa
 | button | ✅ | CTAs y acciones por fila |
 | **date-picker** | ✅ | `CampoFecha.tsx` (`DatePicker` + `DateInputGroup` + `Calendar`) en **12 usos**: 4 solo fecha (filtros de Transacciones ×2, `InversorModal`, `TasaCambioModal`) y 8 con hora (`conHora`: Aporte, Cobro de comisión, Conversión, Recepción de envío, Inversión, Movimiento de capital, Transacción, Venta); 0 `<input type="date">` y 0 `<Input type="datetime-local">` |
 | **combo-box** | ✅ | `SelectorBuscable.tsx` (`ComboBox`) en producto de `EnvioModal` y `VentaModal` |
-| **dropdown** | ❌ | las filas siguen con 2 botones (Editar/Eliminar); es la solución natural a la separación pedida en Productos |
-| **input-group** | ❌ | montos con prefijo/sufijo de moneda (USD/CUP/USDT) |
-| **alert** | ❌ | avisos inline escritos a mano (`ErrorFormulario`, avisos de modales) |
-| **separator** | ❌ | divisores entre secciones de los modales |
-| **close-button** | ❌ | el cierre de modales no usa el componente |
-| **progress-circle** | ❌ | no hay indicador de carga circular |
-| **meter** | ❌ | no hay medidor de uso/objetivo |
-| **scroll-shadow** | ⚠️ | solo el que trae `Tabs.ListContainer`; no se usa explícitamente en tablas/listas largas |
+| **dropdown** | ⛔ | **Descartado por preferencia del usuario**: un menú por fila contradice la separación explícita de Editar/Eliminar. Las filas conservan los dos `Button` (secondary/danger) |
+| **input-group** | ✅ | `NumInput` acepta `prefijo`/`sufijo` y usa `InputGroup` cuando se pasan: `$` en Aporte/Cobro/Inversión/Movimiento, `und` en unidades, moneda en Conversión/Transacción y `CUP` en TasaCambio |
+| **alert** | ✅ | `ErrorFormulario` es `Alert status="danger"`; los avisos inline de Envío/Inversión/Movimiento/Venta son `Alert` (accent/warning/danger) |
+| **separator** | ✅ | Envío, Venta, Cobro de comisión, TasaCambio y la tarjeta de socio de Inversores |
+| **close-button** | ✅ | `Modal.CloseTrigger` (X) en las cabeceras de los 13 modales |
+| **progress-circle** | ✅ | `Cargando.tsx` (reutilizable) en Calculadora y en el histórico de TasaCambio |
+| **meter** | ✅ | Barra de cumplimiento del margen objetivo en la Calculadora |
+| **scroll-shadow** | ✅ | Tablas crudas de `EnvioModal`, `VentaModal` y `TasaCambioModal` (las tablas HeroUI ya traen su scroll interno) |
 | **breadcrumbs** | ⏸️ | en pausa a propósito: no encaja con el layout de pestañas |
-| **tema** | ❌ | "Definir el tema (colores, fuentes, radios)" sigue abierto |
+| **tema** | ✅ | `index.css`: acento azul (`--accent`), radio `0.625rem`, pila de fuentes del sistema (`--font-sans`) |
 
 ### Instalación y prerrequisitos
 - [x] `npm install @heroui/react@3.2.6` y los peers que exige: `react-aria`, `react-aria-components`, `@react-aria/ssr`, `@react-aria/utils`, `@internationalized/date` (+ `@heroui/styles@3.2.6`). `npm audit`: solo queda la vuln preexistente de `xlsx` (sin fix), ajena a HeroUI
 - [x] CSS: Tailwind v4 no usa `@plugin` para esto; HeroUI v3 se carga con `@import "@heroui/styles";` **después** de `@import "tailwindcss";` en `src/renderer/index.css` (el orden importa). No requiere Provider
-- [ ] Definir el tema (colores, fuentes, radios) — la paleta actual es Tailwind puro sobre fondo `#f3f4f6`
+- [x] Definir el tema (colores, fuentes, radios) — tokens en `src/renderer/index.css`: acento azul, radio `0.625rem` y pila de fuentes del sistema (sin descargar fuentes)
 - [x] Verificar que el build sigue en Electron sin problemas de `file://` / `base: './'` — `vite build` OK, tsc OK
 
 ### Enfoque
@@ -332,7 +332,7 @@ Medido en `src/renderer` (no de memoria). **La Fase 4.7 NO está terminada**: fa
   - Los avisos que bloquean (socio con inversiones / con transacciones) pasan a JSX con `<br/>` en vez de `\n`; el cobro del 1% usa `<pre>` para las líneas del detalle
 - [x] **Typecheck en dos tsconfigs** (por el ESM-only de HeroUI): `tsconfig.json` (main, `node16` CJS, solo `src/main`+`src/shared`+`src/types`) y `tsconfig.renderer.json` (`module: esnext` + `moduleResolution: bundler`, `noEmit`, `src/renderer`); script `npm run typecheck`. Fue necesario porque importar `@heroui/react` (ESM-only) desde un archivo tratado como CommonJS daba `TS1479` y TS2305 falso
   - Se aprovechó para corregir 5 `where: { inversor: { id } }` de `inversoresService.ts` que no tipaban: `as FindOptionsWhere<Inversion>` / `<MovimientoCapital>` (sin cambio de runtime)
-- [x] **`button`**: los CTAs de cabecera (`+ Nuevo Producto/Moneda/Cuenta/Envío/Venta/Transacción/Socio/Aporte/Asignar Capital/Reinvertir/Pagar Socio/Cobrar 1%/Peer/Conversión`, `Tasas de Cambio`, `Exportar Reporte`), los pills de filtro de la Calculadora y todos los botones por fila (Editar/Eliminar/Borrar) pasaron a `Button` de HeroUI (`@heroui/react/button`). Detalles: `Button` **no acepta `title`** (RAC la filtra) → el tooltip va en un `<span>` interno; `isDisabled` en vez de `disabled`; variantes usadas: `primary` (CTAs), `secondary` (filtros inactivos/editar), `danger` (eliminar), `danger-soft` (cobrar 1%/borrar). Pasan `onClick` nativo sin problema. Quedan fuera: los `<button>` de los **modales** (cancelar/guardar) y los 2 `<button>` internos de `TransaccionModal`/`TasaCambioModal` — se harán con la migración de modales a `Modal` de HeroUI
+- [x] **`button`**: los CTAs de cabecera (`+ Nuevo Producto/Moneda/Cuenta/Envío/Venta/Transacción/Socio/Aporte/Asignar Capital/Reinvertir/Pagar Socio/Cobrar 1%/Peer/Conversión`, `Tasas de Cambio`, `Exportar Reporte`), los pills de filtro de la Calculadora y todos los botones por fila (Editar/Eliminar/Borrar) pasaron a `Button` de HeroUI (`@heroui/react/button`). Detalles: `Button` **no acepta `title`** (RAC la filtra) → el tooltip va en un `<span>` interno; `isDisabled` en vez de `disabled`; variantes usadas: `primary` (CTAs), `secondary` (filtros inactivos/editar), `danger` (eliminar), `danger-soft` (cobrar 1%/borrar). Pasan `onClick` nativo sin problema. Los botones de los modales también son `Button` desde la Fase 4.10.
 - [x] **Pestañas reestructuradas (orden + horizontal + iconos)**: nuevo orden Dashboard, Productos, Envíos, Conversión, Ventas, Inversores, Cuentas, Transacciones, Calculadora de Precios, Monedas. Cada tab con icono+etiqueta; la barra va en un `Card` (`p-2`) con `Tabs.ListContainer` + `Tabs.List` sin `flex-wrap`: usa el `ScrollShadow` de HeroUI (una sola fila horizontal, flechas propias, sin barra visible). La pestaña por defecto es `dashboard`.
 - [x] **Modo oscuro**: toggle 🌙/☀️ en la cabecera (default = `prefers-color-scheme`, luego manda `localStorage`); `@custom-variant dark` en `index.css`, clase `dark` en `<html>` (script inline en `index.html` para evitar flash), hook `src/renderer/useTheme.ts`, y pase completo `dark:` (~296 clases de mano en `App.tsx` + 13 modales + reglas globales para inputs/selects).
 - [x] **Quitar título "Mi App de Ventas 🚀"** de la cabecera (se conserva el lado derecho: tasa, botón Tasas, toggle)

@@ -5,6 +5,9 @@ import { ProductoEnvio } from '../../shared/entities/ProductoEnvio';
 import NumInput from './NumInput';
 import ErrorFormulario from './ErrorFormulario';
 import CampoFecha from './CampoFecha';
+import { Alert } from '@heroui/react/alert';
+import { Separator } from '@heroui/react/separator';
+import { ScrollShadow } from '@heroui/react/scroll-shadow';
 import { Modal } from '@heroui/react/modal';
 import { Button } from '@heroui/react/button';
 import Selector from './Selector';
@@ -232,6 +235,7 @@ const EnvioModal: React.FC<EnvioModalProps> = ({
           <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
             <Modal.Header>
               <Modal.Heading>{envioEditar ? 'Editar Envío' : 'Nuevo Envío'}</Modal.Heading>
+              <Modal.CloseTrigger aria-label="Cerrar" />
             </Modal.Header>
             <Modal.Body>
               <ErrorFormulario errores={errores} />
@@ -318,14 +322,17 @@ const EnvioModal: React.FC<EnvioModalProps> = ({
           </div>
 
           {totalUnidades > 0 && (
-            <div className="mb-4 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 rounded-lg p-3">
-              <p className="text-sm text-blue-900 dark:text-blue-200">
-                Overhead total (flete + aranceles + otros):{' '}
-                <strong>${overheadTotal.toFixed(2)}</strong> ·{' '}
-                {totalUnidades} unidad{totalUnidades === 1 ? '' : 'es'} →{' '}
-                <strong>${overheadPorUnidad.toFixed(2)}</strong> por unidad
-              </p>
-            </div>
+            <Alert status="accent" className="mb-4">
+              <Alert.Indicator />
+              <Alert.Content>
+                <Alert.Description>
+                  Overhead total (flete + aranceles + otros):{' '}
+                  <strong>${overheadTotal.toFixed(2)}</strong> · {totalUnidades} unidad
+                  {totalUnidades === 1 ? '' : 'es'} →{' '}
+                  <strong>${overheadPorUnidad.toFixed(2)}</strong> por unidad
+                </Alert.Description>
+              </Alert.Content>
+            </Alert>
           )}
 
           {envio.estado === 'recibido' && (
@@ -343,6 +350,8 @@ const EnvioModal: React.FC<EnvioModalProps> = ({
             </div>
           )}
 
+          <Separator className="my-5" />
+
           {/* Lista de productos del envío */}
           <div className="mb-4">
             <h3 className="text-lg font-semibold mb-2">Productos en el Envío</h3>
@@ -350,15 +359,19 @@ const EnvioModal: React.FC<EnvioModalProps> = ({
             {/* Tabla de productos agregados */}
             <div className="mb-4">
               {envioRecibido && envio.estado === 'recibido' && (
-                <div className="mb-2 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 rounded-lg p-2">
-                  <p className="text-xs text-amber-800 dark:text-amber-300">
-                    Este envío ya fue recibido: sus productos están bloqueados para no alterar el
-                    stock ni el costo FIFO de ventas ya registradas. Devuélvelo a «Pendiente» si
-                    necesitas corregirlo.
-                  </p>
-                </div>
+                <Alert status="warning" className="mb-2">
+                  <Alert.Indicator />
+                  <Alert.Content>
+                    <Alert.Description>
+                      Este envío ya fue recibido: sus productos están bloqueados para no alterar el
+                      stock ni el costo FIFO de ventas ya registradas. Devuélvelo a «Pendiente» si
+                      necesitas corregirlo.
+                    </Alert.Description>
+                  </Alert.Content>
+                </Alert>
               )}
-              <table className="min-w-full border">
+              <ScrollShadow orientation="horizontal">
+                <table className="min-w-full border">
                 <thead className="bg-surface-secondary">
                   <tr>
                     <th className="p-2 border">Producto</th>
@@ -409,7 +422,8 @@ const EnvioModal: React.FC<EnvioModalProps> = ({
                     </tr>
                   ))}
                 </tbody>
-              </table>
+                </table>
+              </ScrollShadow>
             </div>
 
             {/* Formulario para agregar productos */}

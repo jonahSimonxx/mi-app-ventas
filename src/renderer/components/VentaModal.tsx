@@ -5,6 +5,9 @@ import { PreviewCostoVenta } from '../../main/services/rentabilidadService';
 import NumInput from './NumInput';
 import ErrorFormulario from './ErrorFormulario';
 import CampoFecha from './CampoFecha';
+import { Alert } from '@heroui/react/alert';
+import { Separator } from '@heroui/react/separator';
+import { ScrollShadow } from '@heroui/react/scroll-shadow';
 import Selector from './Selector';
 import SelectorBuscable from './SelectorBuscable';
 import { Modal, Button, Input, Select, SelectTrigger, SelectValue, SelectPopover, ListBox, ListBoxItem } from '@heroui/react';
@@ -258,6 +261,7 @@ const VentaModal: React.FC<VentaModalProps> = ({
           <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
             <Modal.Header>
               <Modal.Heading>{ventaEditar ? 'Editar Venta' : 'Nueva Venta'}</Modal.Heading>
+              <Modal.CloseTrigger aria-label="Cerrar" />
             </Modal.Header>
             <Modal.Body>
               <ErrorFormulario errores={errores} />
@@ -350,19 +354,24 @@ const VentaModal: React.FC<VentaModalProps> = ({
           </div>
 
           {preview && preview.unidadesSinOrigen > 0 && (
-            <div className="mb-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 rounded-lg p-2">
-              <p className="text-xs text-amber-800 dark:text-amber-300">
-                {preview.unidadesSinOrigen} unidad(es) no tienen envío recibido asociado: se usan
-                como costo el precio de catálogo del producto.
-              </p>
-            </div>
+            <Alert status="warning" className="mb-4">
+              <Alert.Indicator />
+              <Alert.Content>
+                <Alert.Description>
+                  {preview.unidadesSinOrigen} unidad(es) no tienen envío recibido asociado: se usan
+                  como costo el precio de catálogo del producto.
+                </Alert.Description>
+              </Alert.Content>
+            </Alert>
           )}
+
+          <Separator className="my-5" />
 
           {/* Lista de productos de la venta */}
           <div className="mb-4">
             <h3 className="text-lg font-semibold mb-2">Productos Vendidos</h3>
 
-            <div className="mb-4">
+            <ScrollShadow orientation="horizontal" className="mb-4">
               <table className="min-w-full border tabular-nums">
                 <thead className="bg-surface-secondary">
                   <tr>
@@ -413,7 +422,7 @@ const VentaModal: React.FC<VentaModalProps> = ({
                   })}
                 </tbody>
               </table>
-            </div>
+            </ScrollShadow>
 
             <div className="grid grid-cols-3 gap-2 mb-2">
               <div>

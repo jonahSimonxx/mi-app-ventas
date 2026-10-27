@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import NumInput from './NumInput';
 import CampoFecha from './CampoFecha';
+import { Separator } from '@heroui/react/separator';
 import { Modal } from '@heroui/react/modal';
 import { Button } from '@heroui/react/button';
 import Selector from './Selector';
@@ -74,6 +75,7 @@ const CobroComisionModal: React.FC<CobroComisionModalProps> = ({
           <Modal.Dialog>
             <Modal.Header>
               <Modal.Heading>Cobrar Comisión del 1%</Modal.Heading>
+              <Modal.CloseTrigger aria-label="Cerrar" />
             </Modal.Header>
             <Modal.Body>
               <p className="text-sm text-muted mb-4">
@@ -100,6 +102,7 @@ const CobroComisionModal: React.FC<CobroComisionModalProps> = ({
           <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
             <Modal.Header>
               <Modal.Heading>Cobrar Comisión del 1%</Modal.Heading>
+              <Modal.CloseTrigger aria-label="Cerrar" />
             </Modal.Header>
             <Modal.Body>
         <p className="text-xs text-muted mb-4">
@@ -135,7 +138,8 @@ const CobroComisionModal: React.FC<CobroComisionModalProps> = ({
                 <span className="text-muted">Cobrado</span>
                 <span className="font-medium">{socio.comisionCobrada.toFixed(2)} USD</span>
               </div>
-              <div className="flex justify-between border-t mt-1 pt-1">
+              <Separator className="my-2" />
+              <div className="flex justify-between">
                 <span className="text-muted">Pendiente</span>
                 <span className={`font-bold ${pendiente > 0.004 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
                   {pendiente.toFixed(2)} USD
@@ -158,7 +162,8 @@ const CobroComisionModal: React.FC<CobroComisionModalProps> = ({
                 min="0"
                 value={monto}
                 onChange={setMonto}
-                className="w-full p-2 border rounded"
+                prefijo="$"
+                className="w-full"
                 required
                 autoFocus
               />

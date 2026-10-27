@@ -21,9 +21,21 @@
   }
 }
 
+/* Tema de la app (Fase 4.7). HeroUI lee estos tokens en tiempo de ejecución, así que
+   sobreescribirlos aquí (sin @layer) gana sobre los valores por defecto de
+   `@heroui/styles`. Se ajusta solo lo que la app usa de verdad: azul de marca,
+   radio un poco más suave y una pila de fuentes del sistema (sin descargar fuentes). */
+:root {
+  --accent: oklch(0.546 0.245 262.881); /* ≈ blue-600 de Tailwind */
+  --accent-foreground: oklch(100% 0 0);
+  --radius: 0.625rem;
+  --font-sans: 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+}
+
 body {
   background-color: var(--background);
   color: var(--foreground);
+  font-family: var(--font-sans);
 }
 
 /* Controles crudos que siguen a mano (NumInput y los dos checkbox): no llevan la

@@ -5,6 +5,7 @@ import { ResumenInversor } from '../../main/services/inversoresService';
 import NumInput from './NumInput';
 import ErrorFormulario from './ErrorFormulario';
 import CampoFecha from './CampoFecha';
+import { Alert } from '@heroui/react/alert';
 import { Modal } from '@heroui/react/modal';
 import { Button } from '@heroui/react/button';
 import { Input } from '@heroui/react/input';
@@ -144,6 +145,7 @@ const MovimientoCapitalModal: React.FC<MovimientoCapitalModalProps> = ({
           <Modal.Dialog>
             <Modal.Header>
               <Modal.Heading>Movimiento de Capital</Modal.Heading>
+              <Modal.CloseTrigger aria-label="Cerrar" />
             </Modal.Header>
             <Modal.Body>
               <p className="text-foreground/70 text-sm mb-4">
@@ -170,6 +172,7 @@ const MovimientoCapitalModal: React.FC<MovimientoCapitalModalProps> = ({
           <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
             <Modal.Header>
               <Modal.Heading>Reinvertir o Pagar</Modal.Heading>
+              <Modal.CloseTrigger aria-label="Cerrar" />
             </Modal.Header>
             <Modal.Body>
               <ErrorFormulario errores={errores} />
@@ -214,13 +217,18 @@ const MovimientoCapitalModal: React.FC<MovimientoCapitalModalProps> = ({
           </div>
 
           {socio && !socio.cuadra && (
-            <div className="mb-4 p-2 bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-900 rounded-lg text-xs text-red-800 dark:text-red-300">
-              Este socio no cuadra
-              {Number(socio.diferencia) !== 0
-                ? `: se invirtió distinto de lo aportado (diferencia ${Number(socio.diferencia).toFixed(2)}).`
-                : ': se movió más capital del que existía.'}{' '}
-              Conviene arreglarlo antes de mover más plata.
-            </div>
+            <Alert status="danger" className="mb-4">
+              <Alert.Indicator />
+              <Alert.Content>
+                <Alert.Description>
+                  Este socio no cuadra
+                  {Number(socio.diferencia) !== 0
+                    ? `: se invirtió distinto de lo aportado (diferencia ${Number(socio.diferencia).toFixed(2)}).`
+                    : ': se movió más capital del que existía.'}{' '}
+                  Conviene arreglarlo antes de mover más plata.
+                </Alert.Description>
+              </Alert.Content>
+            </Alert>
           )}
 
           <div className="grid grid-cols-2 gap-4 mb-4">
@@ -231,7 +239,8 @@ const MovimientoCapitalModal: React.FC<MovimientoCapitalModalProps> = ({
                 min="0"
                 value={monto}
                 onChange={setMonto}
-                className="w-full p-2 border rounded"
+                prefijo="$"
+                className="w-full"
                 required
                 autoFocus
               />
@@ -297,7 +306,8 @@ const MovimientoCapitalModal: React.FC<MovimientoCapitalModalProps> = ({
                   min="0"
                   value={unidades}
                   onChange={setUnidades}
-                  className="w-full p-2 border rounded"
+                  sufijo="und"
+                  className="w-full"
                   required
                 />
                 <p className="text-foreground/70 text-xs mt-1">

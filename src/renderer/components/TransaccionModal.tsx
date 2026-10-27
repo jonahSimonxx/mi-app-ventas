@@ -122,6 +122,9 @@ const TransaccionModal: React.FC<TransaccionModalProps> = ({
 
   if (!isOpen) return null;
 
+  const monedaOrigen = cuentas.find((c) => c.id_cuenta === cuentaOrigenId)?.moneda?.codigo;
+  const monedaDestino = cuentas.find((c) => c.id_cuenta === cuentaDestinoId)?.moneda?.codigo;
+
   return (
     <Modal isOpen={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
       <Modal.Backdrop>
@@ -130,6 +133,7 @@ const TransaccionModal: React.FC<TransaccionModalProps> = ({
           <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
             <Modal.Header>
               <Modal.Heading>{transaccionEditar ? 'Editar Transacción' : 'Nueva Transacción'}</Modal.Heading>
+              <Modal.CloseTrigger aria-label="Cerrar" />
             </Modal.Header>
             <Modal.Body>
               <ErrorFormulario errores={errores} />
@@ -186,7 +190,8 @@ const TransaccionModal: React.FC<TransaccionModalProps> = ({
                 step="0.01"
                 value={transaccion.monto_origen}
                 onChange={(n) => setTransaccion({ ...transaccion, monto_origen: n })}
-                className="w-full p-2 border rounded"
+                sufijo={monedaOrigen}
+                className="w-full"
                 required
               />
             </div>
@@ -196,7 +201,8 @@ const TransaccionModal: React.FC<TransaccionModalProps> = ({
                 step="0.0001"
                 value={transaccion.tasa_cambio}
                 onChange={(n) => setTransaccion({ ...transaccion, tasa_cambio: n })}
-                className="w-full p-2 border rounded"
+                sufijo={monedaOrigen && monedaDestino ? `${monedaDestino}/${monedaOrigen}` : undefined}
+                className="w-full"
                 required
               />
             </div>
@@ -219,7 +225,8 @@ const TransaccionModal: React.FC<TransaccionModalProps> = ({
                 min="0"
                 value={transaccion.comision}
                 onChange={(n) => setTransaccion({ ...transaccion, comision: n })}
-                className="w-full p-2 border rounded"
+                sufijo={monedaOrigen}
+                className="w-full"
               />
             </div>
           </div>

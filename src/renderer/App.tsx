@@ -6,6 +6,8 @@ import { Button } from '@heroui/react/button';
 import { Skeleton } from '@heroui/react/skeleton';
 import { EmptyState } from '@heroui/react/empty-state';
 import { Chip } from '@heroui/react/chip';
+import { Separator } from '@heroui/react/separator';
+import { Meter } from '@heroui/react/meter';
 import { toast } from '@heroui/react';
 import {
   LayoutDashboard,
@@ -86,6 +88,7 @@ import {
 import { ResumenInversor } from '../main/services/inversoresService';
 import Selector from './components/Selector';
 import CampoFecha from './components/CampoFecha';
+import Cargando from './components/Cargando';
 
 const App: React.FC = () => {
   const { theme, onToggleTheme } = useTheme();
@@ -259,6 +262,12 @@ const App: React.FC = () => {
   const pagInversiones = usePaginacion(inversiones.length, 10);
   const pagMovimientos = usePaginacion(movimientosCapital.length, 10);
   const pagFlujos = usePaginacion(flujosConversion.length, 10);
+
+  // Cumplimiento del margen objetivo en la Calculadora (para el Meter).
+  const bajoMargenObjetivo = sugerencias.filter((s) => s.bajoMargenObjetivo).length;
+  const cumplimientoMargen = sugerencias.length
+    ? Math.round(((sugerencias.length - bajoMargenObjetivo) / sugerencias.length) * 100)
+    : 0;
 
   // ========== RESUMEN DEL LOBBY (Fase 6) ==========
   const ventasHoy = useMemo(() => {
@@ -2570,7 +2579,29 @@ const App: React.FC = () => {
               <Card className="p-4">
                 <p className="text-xs text-muted">Bajo el margen objetivo</p>
                 <p className="text-2xl font-semibold text-red-600 dark:text-red-400">
-                  {sugerencias.filter((s) => s.bajoMargenObjetivo).length}
+                  {bajoMargenObjetivo}
+                </p>
+                <Meter
+                  aria-label={`Productos que alcanzan el margen objetivo de ${margenObjetivo}%`}
+                  minValue={0}
+                  maxValue={100}
+                  value={cumplimientoMargen}
+                  color={
+                    cumplimientoMargen >= 80
+                      ? 'success'
+                      : cumplimientoMargen >= 50
+                        ? 'warning'
+                        : 'danger'
+                  }
+                  size="sm"
+                  className="mt-2"
+                >
+                  <Meter.Track>
+                    <Meter.Fill />
+                  </Meter.Track>
+                </Meter>
+                <p className="text-[11px] text-muted mt-1">
+                  {cumplimientoMargen}% cumple el objetivo de {margenObjetivo}%
                 </p>
               </Card>
               <Card className="p-4">
@@ -2610,13 +2641,9 @@ const App: React.FC = () => {
             </div>
 
             {cargandoSugerencias ? (
-              <div className="overflow-hidden border rounded-xl">
-                <div className="p-4 space-y-3">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <Skeleton key={i} className="h-8 w-full" />
-                  ))}
-                </div>
-              </div>
+              <Card className="p-4">
+                <Cargando etiqueta="Calculando precios…" />
+              </Card>
             ) : sugerencias.length === 0 ? (
               <p className="text-muted text-sm py-10 text-center">
                 No hay productos para calcular. Registra productos y envíos recibidos.
@@ -2957,7 +2984,8 @@ const App: React.FC = () => {
                             significa que bajaste el precio de una venta ya cobrada.
                           </p>
                         )}
-                        <div className="flex justify-between col-span-2 pt-1 mt-1 border-t">
+                        <Separator className="col-span-2 my-1" />
+                        <div className="flex justify-between col-span-2">
                           <span className="text-foreground/70 font-medium">Disponible</span>
                           <span
                             className={`font-bold ${

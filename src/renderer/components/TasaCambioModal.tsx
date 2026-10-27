@@ -13,6 +13,9 @@ import { TasaCambioHistorico } from '../../shared/entities/TasaCambioHistorico';
 import NumInput from './NumInput';
 import ErrorFormulario from './ErrorFormulario';
 import CampoFecha from './CampoFecha';
+import Cargando from './Cargando';
+import { Separator } from '@heroui/react/separator';
+import { ScrollShadow } from '@heroui/react/scroll-shadow';
 import { Modal } from '@heroui/react/modal';
 import { Button } from '@heroui/react/button';
 
@@ -143,7 +146,8 @@ const TasaCambioModal: React.FC<TasaCambioModalProps> = ({ isOpen, onClose, onCh
               step="0.0001"
               value={form.usd_to_cup}
               onChange={(n) => setForm({ ...form, usd_to_cup: n })}
-              className="w-full p-2 border rounded"
+              sufijo="CUP"
+              className="w-full"
               required
             />
           </div>
@@ -153,7 +157,8 @@ const TasaCambioModal: React.FC<TasaCambioModalProps> = ({ isOpen, onClose, onCh
               step="0.0001"
               value={form.eur_to_cup}
               onChange={(n) => setForm({ ...form, eur_to_cup: n === 0 ? '' : n })}
-              className="w-full p-2 border rounded"
+              sufijo="CUP"
+              className="w-full"
             />
           </div>
           <div>
@@ -162,7 +167,8 @@ const TasaCambioModal: React.FC<TasaCambioModalProps> = ({ isOpen, onClose, onCh
               step="0.0001"
               value={form.gbp_to_cup}
               onChange={(n) => setForm({ ...form, gbp_to_cup: n === 0 ? '' : n })}
-              className="w-full p-2 border rounded"
+              sufijo="CUP"
+              className="w-full"
             />
           </div>
           <div className="col-span-4 flex gap-2">
@@ -175,6 +181,8 @@ const TasaCambioModal: React.FC<TasaCambioModalProps> = ({ isOpen, onClose, onCh
           </div>
           </div>
         </form>
+
+        <Separator className="my-6" />
 
         {/* Gráfico de variación USD → CUP */}
         <h3 className="text-lg font-semibold mb-2">Variación USD → CUP</h3>
@@ -195,11 +203,14 @@ const TasaCambioModal: React.FC<TasaCambioModalProps> = ({ isOpen, onClose, onCh
           <p className="text-muted mb-6">Aún no hay datos históricos para graficar.</p>
         )}
 
+        <Separator className="my-6" />
+
         {/* Tabla de histórico */}
         <h3 className="text-lg font-semibold mb-2">Histórico</h3>
         {cargando ? (
-          <p className="text-muted">Cargando…</p>
+          <Cargando etiqueta="Cargando histórico…" />
         ) : (
+          <ScrollShadow orientation="horizontal">
           <table className="min-w-full border">
             <thead className="bg-surface-secondary">
               <tr>
@@ -229,6 +240,7 @@ const TasaCambioModal: React.FC<TasaCambioModalProps> = ({ isOpen, onClose, onCh
               )}
             </tbody>
           </table>
+          </ScrollShadow>
         )}
           </Modal.Body>
         </Modal.Dialog>

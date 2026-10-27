@@ -74,6 +74,7 @@ const [errores, setErrores] = useState<string[]>([]);
           <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
             <Modal.Header>
               <Modal.Heading>{inversorEditar ? 'Editar Socio' : 'Nuevo Socio'}</Modal.Heading>
+              <Modal.CloseTrigger aria-label="Cerrar" />
             </Modal.Header>
             <Modal.Body>
               <ErrorFormulario errores={errores} />

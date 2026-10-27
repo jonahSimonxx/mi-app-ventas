@@ -3,6 +3,7 @@ import { Envio } from '../../shared/entities/Envio';
 import NumInput from './NumInput';
 import ErrorFormulario from './ErrorFormulario';
 import CampoFecha from './CampoFecha';
+import { Alert } from '@heroui/react/alert';
 import { Modal } from '@heroui/react/modal';
 import { Button } from '@heroui/react/button';
 import { Input } from '@heroui/react/input';
@@ -150,6 +151,7 @@ const InversionModal: React.FC<InversionModalProps> = ({
           <Modal.Dialog>
             <Modal.Header>
               <Modal.Heading>Asignar Capital</Modal.Heading>
+              <Modal.CloseTrigger aria-label="Cerrar" />
             </Modal.Header>
             <Modal.Body>
               <p className="text-foreground/70 text-sm mb-4">
@@ -190,6 +192,7 @@ const InversionModal: React.FC<InversionModalProps> = ({
           <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
             <Modal.Header>
               <Modal.Heading>Asignar Capital a un Producto</Modal.Heading>
+              <Modal.CloseTrigger aria-label="Cerrar" />
             </Modal.Header>
             <Modal.Body>
               <ErrorFormulario errores={errores} />
@@ -240,21 +243,31 @@ const InversionModal: React.FC<InversionModalProps> = ({
           </div>
 
           {envioNoRecibido && (
-            <div className="mb-4 p-2 bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-300 dark:border-yellow-700 rounded-lg text-xs text-yellow-800 dark:text-yellow-300">
-              Este envío está <strong>pendiente</strong>. Su capital no entra al FIFO ni
-              genera comisión hasta que lo marques como recibido.
-            </div>
+            <Alert status="warning" className="mb-4">
+              <Alert.Indicator />
+              <Alert.Content>
+                <Alert.Description>
+                  Este envío está <strong>pendiente</strong>. Su capital no entra al FIFO ni
+                  genera comisión hasta que lo marques como recibido.
+                </Alert.Description>
+              </Alert.Content>
+            </Alert>
           )}
 
           {yaVendidas > 0 && !envioNoRecibido && (
-            <div className="mb-4 p-2 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 rounded-lg text-xs text-amber-900 dark:text-amber-200">
-              Ojo: de <strong>{linea?.producto?.nombre_prod}</strong> ya se vendieron{' '}
-              <strong>{yaVendidas}</strong> unidades en total. Tu capital de hoy no
-              devengará el 1% de esas ventas (su capital no estaba en la mercancía que se
-              vendió): el 1% solo cuenta a partir de hoy, sobre las ventas que cubran
-              unidades de este envío. Puedes registrarlo igual si es justo lo que
-              financiará las ventas siguientes.
-            </div>
+            <Alert status="warning" className="mb-4">
+              <Alert.Indicator />
+              <Alert.Content>
+                <Alert.Description>
+                  Ojo: de <strong>{linea?.producto?.nombre_prod}</strong> ya se vendieron{' '}
+                  <strong>{yaVendidas}</strong> unidades en total. Tu capital de hoy no
+                  devengará el 1% de esas ventas (su capital no estaba en la mercancía que se
+                  vendió): el 1% solo cuenta a partir de hoy, sobre las ventas que cubran
+                  unidades de este envío. Puedes registrarlo igual si es justo lo que
+                  financiará las ventas siguientes.
+                </Alert.Description>
+              </Alert.Content>
+            </Alert>
           )}
 
           <div className="grid grid-cols-2 gap-4 mb-4">
@@ -265,7 +278,8 @@ const InversionModal: React.FC<InversionModalProps> = ({
                 min="0"
                 value={unidades}
                 onChange={setUnidades}
-                className="w-full p-2 border rounded"
+                sufijo="und"
+                className="w-full"
                 required
               />
               {linea && (
@@ -282,7 +296,8 @@ const InversionModal: React.FC<InversionModalProps> = ({
                 min="0"
                 value={monto}
                 onChange={setMonto}
-                className="w-full p-2 border rounded"
+                prefijo="$"
+                className="w-full"
                 required
               />
               {costoRealUnitario > 0 && unidades > 0 && (

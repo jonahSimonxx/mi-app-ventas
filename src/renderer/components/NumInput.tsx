@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { InputGroup } from '@heroui/react/input-group';
 
 interface NumInputProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange' | 'type'> {
@@ -6,6 +7,10 @@ interface NumInputProps
   onChange: (value: number) => void;
   /** Se permite el negativo si el campo lo necesita (ej. ajustes). */
   allowNegative?: boolean;
+  /** Texto o ícono fijo a la izquierda del número (ej. «$»). Activa el InputGroup. */
+  prefijo?: React.ReactNode;
+  /** Texto o ícono fijo a la derecha del número (ej. «USD», «%»). Activa el InputGroup. */
+  sufijo?: React.ReactNode;
 }
 
 /** Un input numérico que no rompe la escritura. */
@@ -13,6 +18,8 @@ const NumInput: React.FC<NumInputProps> = ({
   value,
   onChange,
   allowNegative = false,
+  prefijo,
+  sufijo,
   className,
   ...rest
 }) => {
@@ -34,26 +41,39 @@ const NumInput: React.FC<NumInputProps> = ({
     }
   }, [value]);
 
+  const alCambiar = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const t = e.target.value;
+    const patron = allowNegative ? /^-?\d*\.?\d*$/ : /^\d*\.?\d*$/;
+    if (!patron.test(t)) return;
+
+    setTexto(t);
+
+    const n = t === '' || t === '-' || t === '.' || t === '-.' ? 0 : Number(t);
+    ultimoEnviado.current = n;
+    onChange(n);
+  };
+
+  const inputProps = {
+    ...rest,
+    type: 'text',
+    inputMode: 'decimal' as const,
+    autoComplete: 'off',
+    value: texto,
+    onChange: alCambiar,
+  };
+
+  // Sin prefijo ni sufijo se mantiene el <input> crudo de siempre, para no alterar
+  // los formularios que ya tenían su propio borde y padding.
+  if (prefijo === undefined && sufijo === undefined) {
+    return <input {...inputProps} className={className} />;
+  }
+
   return (
-    <input
-      {...rest}
-      type="text"
-      inputMode="decimal"
-      autoComplete="off"
-      className={className}
-      value={texto}
-      onChange={(e) => {
-        const t = e.target.value;
-        const patron = allowNegative ? /^-?\d*\.?\d*$/ : /^\d*\.?\d*$/;
-        if (!patron.test(t)) return;
-
-        setTexto(t);
-
-        const n = t === '' || t === '-' || t === '.' || t === '-.' ? 0 : Number(t);
-        ultimoEnviado.current = n;
-        onChange(n);
-      }}
-    />
+    <InputGroup fullWidth className={className}>
+      {prefijo !== undefined && <InputGroup.Prefix>{prefijo}</InputGroup.Prefix>}
+      <InputGroup.Input {...inputProps} />
+      {sufijo !== undefined && <InputGroup.Suffix>{sufijo}</InputGroup.Suffix>}
+    </InputGroup>
   );
 };
 

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Alert } from '@heroui/react/alert';
 
 interface ErrorFormularioProps {
   errores: string[];
@@ -14,14 +15,19 @@ const ErrorFormulario: React.FC<ErrorFormularioProps> = ({ errores }) => {
   if (errores.length === 0) return null;
 
   return (
-    <div className="mb-4 bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-700 rounded-lg p-3">
-      <p className="text-sm font-medium text-red-800 dark:text-red-200">Revisá antes de guardar:</p>
-      <ul className="list-disc list-inside text-sm text-red-700 dark:text-red-300">
-        {errores.map((mensaje) => (
-          <li key={mensaje}>{mensaje}</li>
-        ))}
-      </ul>
-    </div>
+    <Alert status="danger" className="mb-4">
+      <Alert.Indicator />
+      <Alert.Content>
+        <Alert.Title>Revisá antes de guardar</Alert.Title>
+        <Alert.Description>
+          <ul className="list-disc list-inside space-y-0.5">
+            {errores.map((mensaje) => (
+              <li key={mensaje}>{mensaje}</li>
+            ))}
+          </ul>
+        </Alert.Description>
+      </Alert.Content>
+    </Alert>
   );
 };
 

@@ -96,6 +96,7 @@ const AporteModal: React.FC<AporteModalProps> = ({
           <Modal.Dialog>
             <Modal.Header>
               <Modal.Heading>Registrar Aporte</Modal.Heading>
+              <Modal.CloseTrigger aria-label="Cerrar" />
             </Modal.Header>
             <Modal.Body>
               <p className="text-foreground/70 text-sm mb-4">
@@ -122,6 +123,7 @@ const AporteModal: React.FC<AporteModalProps> = ({
           <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
             <Modal.Header>
               <Modal.Heading>Registrar Aporte</Modal.Heading>
+              <Modal.CloseTrigger aria-label="Cerrar" />
             </Modal.Header>
             <Modal.Body>
               <ErrorFormulario errores={errores} />
@@ -148,7 +150,8 @@ const AporteModal: React.FC<AporteModalProps> = ({
                 min="0"
                 value={monto}
                 onChange={setMonto}
-                className="w-full p-2 border rounded"
+                prefijo="$"
+                className="w-full"
                 required
                 autoFocus
               />

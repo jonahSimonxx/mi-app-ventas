@@ -123,6 +123,7 @@ const ConversionModal: React.FC<ConversionModalProps> = ({ isOpen, onClose, onSa
           <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
             <Modal.Header>
               <Modal.Heading>{flujoEditar ? 'Editar Conversión' : 'Nueva Conversión'}</Modal.Heading>
+              <Modal.CloseTrigger aria-label="Cerrar" />
             </Modal.Header>
             <Modal.Body>
               <ErrorFormulario errores={errores} />
@@ -164,7 +165,8 @@ const ConversionModal: React.FC<ConversionModalProps> = ({ isOpen, onClose, onSa
                 step="0.01"
                 value={flujo.monto_in}
                 onChange={(n) => setFlujo({ ...flujo, monto_in: n })}
-                className="w-full p-2 border rounded"
+                sufijo={monedaIn}
+                className="w-full"
                 required
               />
             </div>
@@ -174,7 +176,8 @@ const ConversionModal: React.FC<ConversionModalProps> = ({ isOpen, onClose, onSa
                 step="0.01"
                 value={flujo.monto_usdt_recibido}
                 onChange={(n) => setFlujo({ ...flujo, monto_usdt_recibido: n })}
-                className="w-full p-2 border rounded"
+                sufijo="USDT"
+                className="w-full"
                 required
               />
             </div>
@@ -185,7 +188,8 @@ const ConversionModal: React.FC<ConversionModalProps> = ({ isOpen, onClose, onSa
                 min="0"
                 value={flujo.total_comisiones_in}
                 onChange={(n) => setFlujo({ ...flujo, total_comisiones_in: n })}
-                className="w-full p-2 border rounded"
+                sufijo={monedaIn}
+                className="w-full"
               />
             </div>
           </div>
