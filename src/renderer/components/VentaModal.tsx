@@ -4,6 +4,7 @@ import { Producto } from '../../shared/entities/Producto';
 import { PreviewCostoVenta } from '../../main/services/rentabilidadService';
 import NumInput from './NumInput';
 import ErrorFormulario from './ErrorFormulario';
+import CampoFecha from './CampoFecha';
 import Selector from './Selector';
 import SelectorBuscable from './SelectorBuscable';
 import { Modal, Button, Input, Select, SelectTrigger, SelectValue, SelectPopover, ListBox, ListBoxItem } from '@heroui/react';
@@ -307,10 +308,12 @@ const VentaModal: React.FC<VentaModalProps> = ({
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium mb-1">Fecha:</label>
-              <Input fullWidth
-                type="datetime-local"
-                value={venta.fecha ? new Date(venta.fecha).toISOString().slice(0, 16) : ''}
-                onChange={(e) => setVenta({ ...venta, fecha: new Date(e.target.value) })}
+              <CampoFecha
+                valor={venta.fecha ? new Date(venta.fecha).toISOString().slice(0, 16) : ''}
+                onChange={(fecha) => setVenta({ ...venta, fecha: new Date(fecha) })}
+                conHora
+                etiqueta="Fecha de la venta"
+                fullWidth
                 required
               />
             </div>

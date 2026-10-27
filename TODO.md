@@ -278,7 +278,7 @@ Decisiones del usuario (todas cerradas):
 |---|---|
 | **table** | El mayor salto visual: Productos, Envíos, Ventas, Transacciones, Conversión y la Calculadora de Precios. Reemplaza las `<table>` escritas a mano. |
 | **alert-dialog** | Sustituye **todos** los `window.confirm` actuales (borrar Producto, Envío, Venta, Transacción, Peer) y los `window.alert` recién añadidos. |
-| **date-picker** | ✅ `CampoFecha` con calendario en los 4 sitios: filtros desde/hasta de Transacciones, `InversorModal` y `TasaCambioModal`. |
+| **date-picker** | ✅ `CampoFecha` con calendario en **los 12 sitios** donde se elige fecha: filtros Desde/Hasta de Transacciones, `InversorModal` y `TasaCambioModal` (solo fecha) + `AporteModal`, `CobroComisionModal`, `ConversionModal`, `EnvioModal` (recepción), `InversionModal`, `MovimientoCapitalModal`, `TransaccionModal` y `VentaModal` (`conHora`, conserva la hora). |
 | **combo-box** | ✅ `SelectorBuscable` con búsqueda en el producto de `EnvioModal` y `VentaModal`. Los filtros de 3 opciones siguen con `Selector` (Select). |
 | **input-group** | Campos de monto con prefijo/sufijo de moneda (USD / CUP / USDT) y buscador con icono. |
 | **alert** | Avisos no bloqueantes: stock bajo, envío con ventas, peer en uso, pérdida en conversión. |
@@ -305,7 +305,7 @@ Medido en `src/renderer` (no de memoria). **La Fase 4.7 NO está terminada**: fa
 | card | ✅ | resúmenes y contenedores de gráficos |
 | skeleton | ✅ | Lobby y tablas |
 | button | ✅ | CTAs y acciones por fila |
-| **date-picker** | ✅ | `CampoFecha.tsx` (`DatePicker` + `DateInputGroup` + `Calendar`) en filtros de Transacciones, `InversorModal` y `TasaCambioModal`; 0 `<input type="date">` |
+| **date-picker** | ✅ | `CampoFecha.tsx` (`DatePicker` + `DateInputGroup` + `Calendar`) en **12 usos**: 4 solo fecha (filtros de Transacciones ×2, `InversorModal`, `TasaCambioModal`) y 8 con hora (`conHora`: Aporte, Cobro de comisión, Conversión, Recepción de envío, Inversión, Movimiento de capital, Transacción, Venta); 0 `<input type="date">` y 0 `<Input type="datetime-local">` |
 | **combo-box** | ✅ | `SelectorBuscable.tsx` (`ComboBox`) en producto de `EnvioModal` y `VentaModal` |
 | **dropdown** | ❌ | las filas siguen con 2 botones (Editar/Eliminar); es la solución natural a la separación pedida en Productos |
 | **input-group** | ❌ | montos con prefijo/sufijo de moneda (USD/CUP/USDT) |

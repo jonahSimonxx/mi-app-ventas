@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Envio } from '../../shared/entities/Envio';
 import NumInput from './NumInput';
 import ErrorFormulario from './ErrorFormulario';
+import CampoFecha from './CampoFecha';
 import { Modal } from '@heroui/react/modal';
 import { Button } from '@heroui/react/button';
 import { Input } from '@heroui/react/input';
@@ -295,11 +296,12 @@ const InversionModal: React.FC<InversionModalProps> = ({
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium mb-1">Fecha:</label>
-              <Input fullWidth
-                type="datetime-local"
-                value={fecha}
-                onChange={(e) => setFecha(e.target.value)}
-               
+              <CampoFecha
+                valor={fecha}
+                onChange={setFecha}
+                conHora
+                etiqueta="Fecha de la inversión"
+                fullWidth
                 required
               />
             </div>

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import NumInput from './NumInput';
+import CampoFecha from './CampoFecha';
 import { Modal } from '@heroui/react/modal';
 import { Button } from '@heroui/react/button';
-import { Input } from '@heroui/react/input';
 import Selector from './Selector';
 
 export interface InversorResumen {
@@ -165,11 +165,12 @@ const CobroComisionModal: React.FC<CobroComisionModalProps> = ({
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Fecha del cobro:</label>
-              <Input
+              <CampoFecha
+                valor={fecha}
+                onChange={setFecha}
+                conHora
+                etiqueta="Fecha del cobro"
                 fullWidth
-                type="datetime-local"
-                value={fecha}
-                onChange={(e) => setFecha(e.target.value)}
                 required
               />
             </div>

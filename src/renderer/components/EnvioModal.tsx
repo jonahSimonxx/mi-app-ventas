@@ -4,9 +4,9 @@ import { Producto } from '../../shared/entities/Producto';
 import { ProductoEnvio } from '../../shared/entities/ProductoEnvio';
 import NumInput from './NumInput';
 import ErrorFormulario from './ErrorFormulario';
+import CampoFecha from './CampoFecha';
 import { Modal } from '@heroui/react/modal';
 import { Button } from '@heroui/react/button';
-import { Input } from '@heroui/react/input';
 import Selector from './Selector';
 import SelectorBuscable from './SelectorBuscable';
 
@@ -331,11 +331,14 @@ const EnvioModal: React.FC<EnvioModalProps> = ({
           {envio.estado === 'recibido' && (
             <div className="mb-4">
               <label className="block text-sm font-medium mb-1">Fecha Recepción:</label>
-              <Input
+              <CampoFecha
+                valor={envio.fecha_recepcion ? new Date(envio.fecha_recepcion).toISOString().slice(0, 16) : ''}
+                onChange={(fecha) =>
+                  setEnvio({ ...envio, fecha_recepcion: fecha ? new Date(fecha) : undefined })
+                }
+                conHora
+                etiqueta="Fecha de recepción"
                 fullWidth
-                type="datetime-local"
-                value={envio.fecha_recepcion ? new Date(envio.fecha_recepcion).toISOString().slice(0, 16) : ''}
-                onChange={(e) => setEnvio({ ...envio, fecha_recepcion: new Date(e.target.value) })}
               />
             </div>
           )}

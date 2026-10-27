@@ -4,6 +4,7 @@ import { Cuenta } from '../../shared/entities/Cuenta';
 import { Moneda } from '../../shared/entities/Moneda';
 import NumInput from './NumInput';
 import ErrorFormulario from './ErrorFormulario';
+import CampoFecha from './CampoFecha';
 import { Modal } from '@heroui/react/modal';
 import { Button } from '@heroui/react/button';
 import { Input } from '@heroui/react/input';
@@ -138,11 +139,12 @@ const TransaccionModal: React.FC<TransaccionModalProps> = ({
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium mb-1">Fecha:</label>
-              <Input fullWidth
-                type="datetime-local"
-                value={new Date(transaccion.fecha || new Date()).toISOString().slice(0, 16)}
-                onChange={(e) => setTransaccion({ ...transaccion, fecha: new Date(e.target.value) })}
-               
+              <CampoFecha
+                valor={new Date(transaccion.fecha || new Date()).toISOString().slice(0, 16)}
+                onChange={(fecha) => setTransaccion({ ...transaccion, fecha: new Date(fecha) })}
+                conHora
+                etiqueta="Fecha de la transacción"
+                fullWidth
                 required
               />
             </div>

@@ -279,7 +279,7 @@ La hoja `Inventario` de los Excel solo trae **precio de venta** (no costo) y `Ga
 
 ### UI: combo-box y date-picker (Fase 4.7)
 - `src/renderer/components/SelectorBuscable.tsx`: `ComboBox` de HeroUI con búsqueda; reemplaza al `Selector` **solo** en el producto de `EnvioModal` y `VentaModal` (donde la lista crece). Los filtros de 3 opciones siguen con `Selector`.
-- `src/renderer/components/CampoFecha.tsx`: `DatePicker` + `DateInputGroup` + `Calendar`; reemplaza los 4 `<Input type="date">` (filtros Desde/Hasta de Transacciones, `InversorModal`, `TasaCambioModal`). Sigue guardando `YYYY-MM-DD`.
+- `src/renderer/components/CampoFecha.tsx`: `DatePicker` + `DateInputGroup` + `Calendar`; **único** campo de fecha de la app (12 usos). Sin `conHora` guarda `YYYY-MM-DD` y reemplaza los 4 `<Input type="date">` (filtros Desde/Hasta de Transacciones, `InversorModal`, `TasaCambioModal`). Con `conHora` muestra los segmentos de hora/minutos y devuelve `YYYY-MM-DDTHH:mm`; reemplaza los 8 `<Input type="datetime-local">` (`AporteModal`, `CobroComisionModal`, `ConversionModal`, `EnvioModal` recepción, `InversionModal`, `MovimientoCapitalModal`, `TransaccionModal`, `VentaModal`). El calendario es idéntico en ambos modos.
 - Lección: en HeroUI/RAC, `items` va en el **`ListBox`** (no en el `ComboBox`); si se pasa al `ComboBox`, React Aria desactiva su filtro "contains" y la búsqueda deja de filtrar. `DateInputGroup` se importa del subpath `@heroui/react/date-input-group`.
 - **Fase 4.7 sigue incompleta**: quedan dropdown, input-group, alert, separator, close-button, progress-circle, meter, `scroll-shadow` y el tema (ver `TODO.md`).
 

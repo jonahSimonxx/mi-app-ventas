@@ -4,6 +4,7 @@ import { Cuenta } from '../../shared/entities/Cuenta';
 import { ResumenInversor } from '../../main/services/inversoresService';
 import NumInput from './NumInput';
 import ErrorFormulario from './ErrorFormulario';
+import CampoFecha from './CampoFecha';
 import { Modal } from '@heroui/react/modal';
 import { Button } from '@heroui/react/button';
 import { Input } from '@heroui/react/input';
@@ -246,11 +247,12 @@ const MovimientoCapitalModal: React.FC<MovimientoCapitalModalProps> = ({
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Fecha:</label>
-              <Input fullWidth
-                type="datetime-local"
-                value={fecha}
-                onChange={(e) => setFecha(e.target.value)}
-               
+              <CampoFecha
+                valor={fecha}
+                onChange={setFecha}
+                conHora
+                etiqueta="Fecha del movimiento"
+                fullWidth
                 required
               />
             </div>

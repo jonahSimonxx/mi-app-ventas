@@ -3,6 +3,7 @@ import { FlujoConversion } from '../../shared/entities/FlujoConversion';
 import { Peer } from '../../shared/entities/Peer';
 import NumInput from './NumInput';
 import ErrorFormulario from './ErrorFormulario';
+import CampoFecha from './CampoFecha';
 import { Modal } from '@heroui/react/modal';
 import { Button } from '@heroui/react/button';
 import { Input } from '@heroui/react/input';
@@ -203,11 +204,12 @@ const ConversionModal: React.FC<ConversionModalProps> = ({ isOpen, onClose, onSa
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Fecha:</label>
-              <Input fullWidth
-                type="datetime-local"
-                value={new Date(flujo.fecha || new Date()).toISOString().slice(0, 16)}
-                onChange={(e) => setFlujo({ ...flujo, fecha: new Date(e.target.value) })}
-               
+              <CampoFecha
+                valor={new Date(flujo.fecha || new Date()).toISOString().slice(0, 16)}
+                onChange={(fecha) => setFlujo({ ...flujo, fecha: new Date(fecha) })}
+                conHora
+                etiqueta="Fecha de la conversión"
+                fullWidth
                 required
               />
             </div>
