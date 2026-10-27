@@ -1,5 +1,7 @@
 # TODO List - Mi App de Ventas
 
+> Última auditoría: **2026-10-27** (Lobby, Fase 4.7, Fase 4.16 y estado de la BD verificados contra el código).
+
 ## Fase 0: Corregir Bugs y Completar Entities
 
 - [x] Corregir tabla Cuentas en App.tsx (columnas "Tipo" y "Telefono" no existen)
@@ -291,6 +293,31 @@ Decisiones del usuario (todas cerradas):
 | **close-button** | Botón de cerrar (X) en modales y tarjetas. |
 | **breadcrumbs** | ⚠️ **No encaja bien** con el layout actual de pestañas; la alternativa natural es `tabs`. Se deja anotado pero en pausa. |
 
+### 📊 Auditoría real (2026-10-27)
+
+Medido en `src/renderer` (no de memoria). **La Fase 4.7 NO está terminada**: falta todo lo marcado en rojo.
+
+| Componente | Estado | Dónde / qué falta |
+|---|---|---|
+| table | ✅ | 13 tablas migradas |
+| alert-dialog | ✅ | `DialogoAviso`; 0 `window.confirm` / `window.alert` |
+| pagination | ✅ | `Paginador` en Productos, Envíos, Ventas y Transacciones |
+| card | ✅ | resúmenes y contenedores de gráficos |
+| skeleton | ✅ | Lobby y tablas |
+| button | ✅ | CTAs y acciones por fila |
+| **date-picker** | ❌ | quedan 4 `<input type="date">`: filtros de Transacciones (`App.tsx` 1942 y 1948), `InversorModal`, `TasaCambioModal` |
+| **combo-box** | ❌ | `Selector` es el `Select` de HeroUI, **sin búsqueda**; en Envío/Venta con muchos productos se vuelve incómodo |
+| **dropdown** | ❌ | las filas siguen con 2 botones (Editar/Eliminar); es la solución natural a la separación pedida en Productos |
+| **input-group** | ❌ | montos con prefijo/sufijo de moneda (USD/CUP/USDT) |
+| **alert** | ❌ | avisos inline escritos a mano (`ErrorFormulario`, avisos de modales) |
+| **separator** | ❌ | divisores entre secciones de los modales |
+| **close-button** | ❌ | el cierre de modales no usa el componente |
+| **progress-circle** | ❌ | no hay indicador de carga circular |
+| **meter** | ❌ | no hay medidor de uso/objetivo |
+| **scroll-shadow** | ⚠️ | solo el que trae `Tabs.ListContainer`; no se usa explícitamente en tablas/listas largas |
+| **breadcrumbs** | ⏸️ | en pausa a propósito: no encaja con el layout de pestañas |
+| **tema** | ❌ | "Definir el tema (colores, fuentes, radios)" sigue abierto |
+
 ### Instalación y prerrequisitos
 - [x] `npm install @heroui/react@3.2.6` y los peers que exige: `react-aria`, `react-aria-components`, `@react-aria/ssr`, `@react-aria/utils`, `@internationalized/date` (+ `@heroui/styles@3.2.6`). `npm audit`: solo queda la vuln preexistente de `xlsx` (sin fix), ajena a HeroUI
 - [x] CSS: Tailwind v4 no usa `@plugin` para esto; HeroUI v3 se carga con `@import "@heroui/styles";` **después** de `@import "tailwindcss";` en `src/renderer/index.css` (el orden importa). No requiere Provider
@@ -309,7 +336,7 @@ Decisiones del usuario (todas cerradas):
 - [x] **Pestañas reestructuradas (orden + horizontal + iconos)**: nuevo orden Dashboard, Productos, Envíos, Conversión, Ventas, Inversores, Cuentas, Transacciones, Calculadora de Precios, Monedas. Cada tab con icono+etiqueta; la barra va en un `Card` (`p-2`) con `Tabs.ListContainer` + `Tabs.List` sin `flex-wrap`: usa el `ScrollShadow` de HeroUI (una sola fila horizontal, flechas propias, sin barra visible). La pestaña por defecto es `dashboard`.
 - [x] **Modo oscuro**: toggle 🌙/☀️ en la cabecera (default = `prefers-color-scheme`, luego manda `localStorage`); `@custom-variant dark` en `index.css`, clase `dark` en `<html>` (script inline en `index.html` para evitar flash), hook `src/renderer/useTheme.ts`, y pase completo `dark:` (~296 clases de mano en `App.tsx` + 13 modales + reglas globales para inputs/selects).
 - [x] **Quitar título "Mi App de Ventas 🚀"** de la cabecera (se conserva el lado derecho: tasa, botón Tasas, toggle)
-- [ ] Mantener HeroUI y las clases Tailwind a mano conviviendo durante la migración (evita romper la app a medio camino)
+- [x] Mantener HeroUI y las clases Tailwind a mano conviviendo durante la migración (evita romper la app a medio camino)
 - [x] **`card`**: los cajetines de resumen pasaron de `bg-gray-50 border rounded` / `bg-white border rounded` a `Card` de HeroUI (`@heroui/react/card`). Patrón conservador: se mantiene el contenido interior idéntico y solo cambia el wrapper a `<Card className="p-4">` (clases utilitarias de color de las cards naranjas del Dashboard se conservan). Quedan fuera de alcance: cajetines interactivos/selectables (tarjetas de socio del tab Inversores) y los `p-2 border rounded` de los inputs (son parte de la migración a `input`/`field`)
 - [x] Eliminar los `window.confirm` / `window.alert` de `App.tsx` — hecho: quedan 0
 - [x] Revisar el tamaño del bundle: `dist/renderer/assets/index-*.js` 1.035 kB (gzip 290 kB), CSS 440 kB (gzip 42 kB). Creció por HeroUI+RAC; al usar **subpath imports** (`@heroui/react/table`, `/tabs`, `/alert-dialog`, `/button`) rolldown bajó los módulos transformados a 1249. Aceptable para una app de escritorio (carga local, no por red); pendiente si se quiere: code-splitting por pestaña o `chunkSizeWarningLimit`
@@ -346,45 +373,56 @@ Decisiones del usuario (todas cerradas):
 
 ## Fase 6: Lobby / Home Screen
 
+**Estado (auditado 2026-10-27): ✅ IMPLEMENTADO, pero NO es la versión final.**
+Existe `src/renderer/components/Lobby.tsx` y está integrado en la pestaña Dashboard. Lo que queda es pulido visual, no funcionalidad.
+
 ### Diseño
-- [ ] Crear pantalla de inicio (Lobby) con acceso rápido a:
-  - [ ] Botón "Nueva Venta" → abre formulario de venta
-  - [ ] Botón "Agregar a Inventario" → abre formulario de producto
-  - [ ] Botón "Registrar Envío" → abre formulario de envío
-  - [ ] Resumen rápido: ventas del día, stock bajo, envíos pendientes
-- [ ] Implementar navegación por pestañas o sidebar
-- [ ] Diseñar layout responsive (desktop y móvil)
+- [x] Pantalla de inicio (Lobby) con acceso rápido a:
+  - [x] Nueva Venta → abre el formulario de venta
+  - [x] Agregar a Inventario → abre el formulario de producto
+  - [x] Registrar Envío → abre el formulario de envío
+  - [x] Nueva Transacción y Registrar Conversión
+  - [x] Resumen rápido: ventas del día, ingresos, stock bajo y envíos pendientes
+- [x] Navegación por pestañas (las 10 pestañas existentes)
+- [x] Layout responsive (2 columnas en móvil, 5 en escritorio para los atajos)
+- [x] Skeletons de carga (no texto "Cargando…")
 
 ### Backend
-- [ ] Crear handler IPC para estadísticas del dashboard
-  - [ ] get-resumen-diario (ventas hoy, ingresos, etc.)
-  - [ ] get-alertas (stock bajo, envíos pendientes)
-- [ ] Actualizar preload.ts con nuevos canales
+- [x] Los datos del Lobby se calculan **en el renderer** con lo que ya devuelven los handlers existentes (`ventas`, `envios`, `productos`); **no** se creó un IPC `get-resumen-diario` aparte porque duplicaba lógica
+- [x] `fetchProductos()` se refresca al entrar a Ventas, al abrir "Nueva Venta" y desde el Lobby (fix `baefc5d`)
 
 ### Frontend
-- [ ] Crear componente Lobby.tsx
-- [ ] Crear componente CardResumen.tsx (tarjetas de resumen)
-- [ ] Crear componente BotonRapido.tsx (accesos directos)
-- [ ] Integrar con pestañas existentes
+- [x] `Lobby.tsx` con 5 atajos + 3 tarjetas de resumen
+- [x] Integrado con las pestañas existentes
+- [x] ~~`CardResumen.tsx` / `BotonRapido.tsx` como componentes separados~~ — se decidió **no** extraerlos: el Lobby es un solo bloque de ~220 líneas y fragmentarlo no aportaba
+
+### ⚠️ Pendiente para la versión final (pulido, no funcionalidad)
+- [ ] Los 3 enlaces "Ver ventas / Ver envíos / Ver productos" son `<button>` crudos → pasar a `Button` de HeroUI (`variant="ghost"` o `link`)
+- [ ] Los pills de stock bajo son `<span>` con clases a mano → `Chip` de HeroUI (`color="danger"`/`"warning"`, `variant="soft"`)
+- [ ] Colores fijos `blue/green/red/amber` → tokens semánticos (`text-accent`, `text-success`, `text-warning`, `text-danger`, `bg-*-soft`) como en el resto de la app
+- [ ] Las tarjetas de atajo usan `Card role="button"` con `onKeyDown` manual → valorar `Button` que envuelva el `Card` (accesibilidad y foco correctos sin código a mano)
 
 ---
 
-## Fase 7: Importación de Excel (Análisis)
+## Fase 7: Importación de Excel — ❌ DESCARTADA (llenado manual)
 
-### Tarea
-- [ ] Subir archivos Excel actuales para analizar estructura de datos
-- [ ] Identificar columnas y formato used
-- [ ] Diseñar mapeo Excel → Entidades de la BD
-- [ ] Crear importador de Excel para:
-  - [ ] Productos (catálogo actual)
-  - [ ] Ventas históricas
-  - [ ] Envíos realizados
-  - [ ] Tasas de cambio
+**Decisión tomada (2026-10-27): NO se importa nada de Excel.** Los datos históricos (Diciembre 2025 – Septiembre 2026) los carga el usuario **a mano**. Los scripts de importación se eliminaron y la BD se restauró a su estado original.
 
-### Preguntas para el usuario
-- [ ] ¿Qué columnas tienen tus Excel actuales?
-- [ ] ¿Son varios archivos o uno solo con diferentes hojas?
-- [ ] ¿Quieres importar el historial o empezar de cero?
+**Motivo:** la hoja `Inventario` solo trae PVP (no costo) y `Gastos Totales por envio` solo trae totales por envío. Con eso no se puede reconstruir el `ProductoEnvio` (`precio_unitario` por producto) que el FIFO necesita. Las ventas quedaban con `costo_total_usd = 0` y ganancia inflada (100 %).
+
+- [ ] **Datos históricos cargados manualmente** ← marcar **solo cuando el usuario lo confirme**. De momento queda pendiente y no se toca.
+- [x] ~~Subir archivos Excel para analizar estructura~~ (analizado; descartado)
+- [x] ~~Diseñar mapeo Excel → Entidades~~ (descartado por falta de costos unitarios)
+- [x] ~~Crear importador de Excel~~ (implementado y revertido; scripts borrados)
+
+### Orden recomendado para la carga manual
+1. **Exportar Respaldo (JSON)** desde el Dashboard antes de empezar.
+2. Crear los **productos** que falten (los que solo aparecen en ventas quedan con `stock_actual = 0`).
+3. Crear los **envíos históricos** como **pendiente**, añadir sus productos con el `precio_unitario` real y **después** pasarlos a **recibido** (un envío recibido bloquea la edición de líneas).
+4. Registrar las **ventas** con su fecha real; el FIFO calcula costo y ganancia solos.
+5. Revisar el Dashboard y "Rentabilidad por Envío".
+
+⚠️ Si un producto **no** está en ningún envío, su costo sale de `Producto.costo` (catálogo): conviene que ese campo tenga el costo real aunque el producto ya esté agotado.
 
 ---
 
@@ -400,7 +438,8 @@ Decisiones del usuario (todas cerradas):
 - [x] **Envíos: precio de línea autocompletado desde `producto.costo`; botón Crear/Guardar independiente de los campos de "agregar producto"** (ya no bloquea el submit)
 - [x] **Pestaña Transacciones limitada a movimientos entre cuentas** — tipo fijo `transferencia` (sin venta/compra/envío), comisiones de plataformas van dentro de la transferencia; se quitó el selector de tipo, la columna "Tipo" y el handler IPC `get-transacciones-por-tipo`; filas existentes se normalizan en `migrarDatosIniciales`
 - [x] **Filtro por estado en Envíos** — selector Todos/Pendiente/Recibido en la cabecera de la pestaña
-- [ ] **Al crear un producto, el stock debe inicializarse con valor 0.00 por defecto**
+- [x] **Al crear un producto, el stock debe inicializarse con valor 0.00 por defecto** — `Producto.stock_actual` tiene `default: 0` en la entity y `ProductoModal` inicializa los 4 campos numéricos en 0 (verificado 2026-10-27)
+- [ ] **Separar un poco los botones Editar / Eliminar de la tabla Productos** — hoy comparten celda con `space-x-2` y quedan muy juntos (`App.tsx` ~1626); solución rápida: `flex gap-2` en la celda, o mejor el `dropdown` de fila de la Fase 4.7
 - [x] **No permitir borrar envíos con unidades vendidas (bloqueo por integridad)** — `delete-envio` ahora **bloquea** con 3 chequeos en orden y mensaje en claro: capital de socios asignado (`Inversion`), reinversiones que apuntan al envío (`MovimientoCapital.envio_destino`) y unidades ya vendidas. El de unidades vendidas se lee de `calcularRentabilidad().porEnvio.unidadesVendidas`, o sea **al motor FIFO que ya existe** — el aviso anterior era falso por construcción (contaba ventas de los *productos* del envío, no de ese envío). También se corrigió la nota obsoleta de `Bugs Conocidos` que decía que se permitía con aviso
 - [x] **Integridad referencial explícita** — `ProductoEnvio.envio` y `ProductoVenta.venta` con `onDelete: CASCADE`; `ProductoEnvio.producto`, `ProductoVenta.producto` y `FlujoConversion.peer` con `onDelete: RESTRICT` más chequeo previo y mensaje en claro (evita el error 23503 de la consola)
 - [x] **Quitar el `CHECK (stock_actual >= 0)`** — el stock es derivado y puede ser negativo (se vende antes de marcar el envío como recibido); el constraint abortaba todos los recálculos con 23514. Se elimina del entity y se dropea en la migración de arranque; la tabla marca el negativo en rojo
@@ -424,17 +463,20 @@ Decisiones del usuario (todas cerradas):
 - [x] Eliminar dependencias no usadas (axios, cheerio) — quitadas de `package.json` (`axios`, `cheerio`, `@types/cheerio`); `npm install` podó 23 paquetes. `axios` sigue en `node_modules` como transitiva de otro paquete, es normal. Typecheck y build en verde
 - [x] Agregar validaciones en forms — componente `ErrorFormulario` con el patrón `const [errores, setErrores]` + `setErrores(errores); if (errores.length) return;` en el `handleSubmit`. Cubiertos **13 modales**: Envío, Venta, Transacción, Conversión, Tasa, Moneda, Producto, Cuenta, Peer, Inversor, Aporte, Inversión y Movimiento de capital. `CobroComisionModal` se dejó como estaba: ya validaba (`excede` + `isDisabled` + aviso inline) y es el modelo a seguir. Además, guard en el backend de `update-envio` (no se puede marcar "recibido" un envío sin unidades)
 - [x] **Modales pegados en una esquina y sin poder ver todo el formulario (Fase 4.14)** — dos defectos de estructura, ambos en los 18 bloques `Modal` de 14 archivos: (1) `<Modal.Backdrop />` estaba auto-cerrado y el `Modal.Container` era su hermano, así que react-aria-components se creaba su overlay interno sin `.modal__backdrop` → sin centrado y sin límite de altura (el `Container` va **dentro** del `Backdrop`); (2) el `<form>` (`display:block`) se interponía entre `Modal.Dialog` y `Modal.Body` y cortaba la cadena flex que hace scrollear el body → los campos inferiores quedaban inalcanzables (`<form className="flex min-h-0 flex-1 flex-col">`, y en `TasaCambioModal` sus clases `grid` a un `<div>` interno). Envío y Venta pasaron a `size="full"` por sus tablas de 7 columnas
-- [ ] Agregar búsqueda en tablas → cubierto por **combo-box** y filtros de **table** (Fase 4.7)
-- [ ] Agregar paginación → cubierto por **pagination** (Fase 4.7)
-- [ ] Agregar confirmación antes de eliminar → cubierto por **alert-dialog** (Fase 4.7)
-- [ ] Mejorar manejo de errores → cubierto en parte por **alert** (Fase 4.7)
-- [ ] Agregar tooltips informativos
-- [ ] Modo oscuro (opcional) → tema de HeroUI, más barato si se hace en Fase 4.7
+- [ ] Agregar búsqueda en tablas → pendiente real: cubierto por **combo-box** (Fase 4.7, aún sin migrar)
+- [x] Agregar paginación → hecho con **pagination** (Fase 4.7): `Paginador` en Productos, Envíos, Ventas y Transacciones
+- [x] Agregar confirmación antes de eliminar → hecho con **alert-dialog** (Fase 4.7): `DialogoAviso`, 0 `window.confirm`
+- [ ] Mejorar manejo de errores → parcial: `mensajeDeError` + `toast.error`; los avisos inline aún no usan **alert** (Fase 4.7)
+- [ ] Agregar tooltips informativos → hoy solo `title` nativo dentro de un `<span>` (RAC filtra `title` en `Button`/`Cell`); falta el `Tooltip` de HeroUI
+- [x] Modo oscuro (opcional) → hecho (toggle, `dark:` completo y `useTheme`)
+
 ---
 
 ## Fase 4.16: Cariño Visual (a–e)
 
 Puramente de presentación: no tocó entidades, servicios FIFO ni handlers IPC.
+
+**Estado (auditado 2026-10-27): ✅ COMPLETA.** Los 20 ítems están hechos y verificados en `src/renderer`. Única excepción: el **Lobby**, que se creó después, todavía tiene 3 `<button>` crudos, pills `<span>` y colores fijos — eso se sigue en la **Fase 6** (pendientes de la versión final).
 
 ### 4.16a Fundamentos
 - [x] Radios de HeroUI aplicados: `rounded-sm/md/lg/xl` (26 sustituciones) y `rounded-full` en chips/pills
@@ -478,16 +520,81 @@ Puramente de presentación: no tocó entidades, servicios FIFO ni handlers IPC.
 
 ---
 
+## Fase 10: Históricos por mes y por año (ganancias y gastos)
+
+**Auditoría (2026-10-27): existe a medias.** El Dashboard ya tiene gráficos **por mes** derivados de las ventas y envíos (`ventasPorMes`, `importesPorMes`, `comparativoImportesVentas`, `invertedVsRecovered`) y Exportar CSV incluye "Mes,Vendido,Ganancia". Pero **no hay**:
+
+- [ ] Selector de **año** ni vista **anual** (todo se suma en una sola línea de tiempo de meses)
+- [ ] Sección/tab de **histórico** con tabla mes a mes (hoy solo gráficos)
+- [ ] **Gastos** como concepto propio: hoy "gasto" = costo + aranceles del envío y el 1 % devengado. No existe entidad `Gasto` ni registro de gastos operativos (luz, internet, transporte, aduana, etc.)
+- [ ] Resumen **anual** (ganancia bruta, gastos, ganancia neta, inversión recuperada) con comparación año contra año
+- [ ] Desglose de **gastos por categoría** dentro de un mes/año
+- [ ] Exportar el histórico filtrado (CSV/PDF)
+
+### Propuesta mínima
+1. Nueva entidad `Gasto` (`id`, `fecha`, `categoria`, `descripcion`, `monto_usd`, `monto_cup`, `tasa`, `envio_id?`) + CRUD y pestaña "Gastos".
+2. Vista "Histórico" con dos filtros: **Año** y **Mes** (Todos / Ene…Dic), tarjetas de resumen y tabla mensual.
+3. Reutilizar el motor FIFO para la ganancia y sumar los gastos **por su fecha** (no por la fecha del envío).
+4. Gráfico de barras por año/mes y comparativo contra el año anterior.
+
+---
+
+## Fase 11: App para Windows (instalador)
+
+Hoy se ejecuta con `npm run dev` / `npm start`: eso exige Node.js y el código fuente. Para tener un `.exe` que se instale y abra con doble clic:
+
+- [ ] `electron-builder` ya está en `devDependencies`, pero **no hay configuración ni scripts**: agregar `build` block en `package.json` (appId, productName, icono, `nsis` one-click, `directories.output`)
+- [ ] Icono `.ico` y assets de la app (no hay icono propio todavía)
+- [ ] Script `npm run dist:win` (`electron-builder --win nsis`)
+- [ ] **Empaquetar `.env` / credenciales**: hoy `dbBridge` lee `DB_HOST/PORT/USER/PASSWORD/NAME`. Decidir si van embebidas en el instalador (cómodo, pero el `.exe` las expone) o si se piden en un primer arranque y se guardan cifradas en `userData`
+- [ ] Verificar el bridge TLS y la CA pineada dentro del paquete (rutas `app.asar`, `NODE_BIN` no aplica en producción: usar el binario empaquetado)
+- [ ] Probar en una PC limpia sin Node.js: instalación, conexión a Supabase, respaldo JSON en `Documents`
+- [ ] Firma de código (opcional; sin firma, Windows SmartScreen mostrará advertencia)
+- [ ] Auto-actualización (opcional, para más adelante)
+
+---
+
+## Fase 12: Realidad de Cuba (cortes de luz y mala conexión) — planificación futura
+
+Cuando llegue el momento, diseñar **offline-first**, porque la app hoy **depende 100 % de Supabase**: sin internet no abre datos ni guarda.
+
+- [ ] **Planificar antes de implementar** (modo planificador): qué se puede hacer sin conexión y qué no
+- [ ] **SQLite local** como fuente primaria en el escritorio y sincronización con Supabase al recuperar señal
+- [ ] **Cola de operaciones offline** (outbox): ventas, gastos y movimientos se guardan localmente y se suben cuando haya red
+- [ ] **Resolución de conflictos** (última escritura vs. merge por `updated_at`) y qué pasa con el FIFO/stock si dos dispositivos venden lo mismo
+- [ ] **Cortes de luz**: guardado inmediato en disco (no en memoria), cierre/rearranque seguro, WAL en SQLite, recuperación tras apagón a mitad de una operación
+- [ ] **Sincronización incremental** (no descargar todo): solo cambios desde la última marca de agua
+- [ ] **Indicador de estado** visible: "Sin conexión — N operaciones pendientes", con reintento manual
+- [ ] **Respaldos locales automáticos** (JSON/SQLite) para no depender de la nube
+- [ ] Revisar el consumo de datos y los timeouts del pooler de Supabase con red 2G/3G
+
+---
+
 ## Prioridad Recomendada
 
+Estado a 2026-10-27. Las fases 0–4.6, 4.8, 4.16 y 9 están terminadas. Lo que viene, en orden:
+
 ```
-Fase 0 (Bugs) → Fase 1 (Envíos) → Fase 2 (Ventas) → Fase 3 (Recargas) → Fase 4 (Dashboard) → Fase 4.5 (Ganancia Real FIFO) → Fase 4.6 (Calculadora de Precios) → Fase 4.7 (Rediseño UI HeroUI) → Fase 5 (Android) → Fase 6 (Lobby) → Fase 7 (Excel) → Fase 8 (Mejoras)
+1. Fase 4.7 restante (UI)  ← lo que falta de HeroUI: date-picker, combo-box,
+   dropdown, alert, input-group, separator, close-button, progress-circle,
+   meter, scroll-shadow y el tema
+2. Fase 10 (Históricos por mes/año + gastos)  ← se necesita antes/después de
+   cargar los históricos a mano
+3. Fase 6 final (pulido del Lobby: Button/Chip/tokens/intro)
+4. Fase 11 (App para Windows: instalador .exe)
+5. Fase 5 (Android + modo offline)
+6. Fase 12 (realidad de Cuba: cortes de luz y mala conexión — planificación)
+7. Fase 8 (deuda técnica: partir main.ts en servicios)
 ```
 
+**Ajuste rápido de UI (independiente del orden):** separar los botones Editar/Eliminar de la tabla Productos (ver Fase 8).
+
 ## Notas
-- Fase 5 (Android) requiere investigación previa de herramientas
-- Fase 7 (Excel) necesita que el usuario suba sus archivos actuales para analizar la estructura
-- Fase 6 (Lobby) puede implementarse en paralelo con otras fases
-- Fases 4.5 y 4.6 dependen del modelo FIFO: el costo real de cada venta se deriva de los envíos, así que `precio_unitario` en `EnvioModal` debe reflejar lo que realmente se pagó por cada artículo en ese envío
-- Fase 4.7 (HeroUI) es puramente de presentación: **no debe tocar entidades, servicios FIFO ni handlers IPC**. El orden 4.5 → 4.6 → 4.7 es deliberado, para tener la lógica estable antes de pintar la interfaz
+- **Fase 7 (Excel) está descartada**: los históricos se cargan a mano. No volver a proponer un importador salvo petición explícita.
+- **Fase 6 (Lobby) ya existe**, pero no es la versión final: quedan los `<button>`/pills/colores fijos (ver el bloque de pendientes de la fase).
+- **Fase 4.7 no está terminada**: 9 componentes sin migrar (date-picker, combo-box, dropdown, input-group, alert, separator, close-button, progress-circle, meter) + `scroll-shadow` parcial + el tema; la tabla de auditoría de esa fase dice exactamente dónde está cada uno.
+- Fase 5 (Android) requiere investigación previa de herramientas. Su modo offline es la base de la Fase 12.
+- Fases 4.5 y 4.6 dependen del modelo FIFO: el costo real de cada venta se deriva de los envíos, así que `precio_unitario` en `EnvioModal` debe reflejar lo que realmente se pagó por cada artículo en ese envío.
+- Fase 4.7 (HeroUI) es puramente de presentación: **no debe tocar entidades, servicios FIFO ni handlers IPC**. El orden 4.5 → 4.6 → 4.7 es deliberado, para tener la lógica estable antes de pintar la interfaz.
+- La BD es **remota (Supabase)** y la app **no funciona sin internet** hasta que se haga la Fase 12. Tenerlo presente antes de usarla en un corte de luz.
 - HeroUI v3.2.6 declara peers `react >=19.0.0` y `tailwindcss >=4.0.0`, compatible con este proyecto (React 19, Tailwind 4.2.4). La versión de documentación enlazada por el usuario corresponde a HeroUI v3
