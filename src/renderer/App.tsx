@@ -1623,21 +1623,23 @@ const App: React.FC = () => {
                         </span>
                       </Table.Cell>
                       <Table.Cell>{Number(p.peso_lbs || 0).toFixed(2)}</Table.Cell>
-                      <Table.Cell className="space-x-2">
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => openEditProductoModal(p)}
-                        >
-                          Editar
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="danger"
-                          onClick={() => handleDeleteProducto(p.id_prod)}
-                        >
-                          Eliminar
-                        </Button>
+                      <Table.Cell>
+                        <div className="flex flex-wrap items-center gap-3">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => openEditProductoModal(p)}
+                          >
+                            Editar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            onClick={() => handleDeleteProducto(p.id_prod)}
+                          >
+                            Eliminar
+                          </Button>
+                        </div>
                       </Table.Cell>
                     </Table.Row>
                   ))}
