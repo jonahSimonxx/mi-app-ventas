@@ -18,6 +18,7 @@ import {
   Handshake,
   Wallet,
   Receipt,
+  ReceiptText,
   Calculator,
   Coins,
   Sun,
@@ -53,6 +54,7 @@ import TasaCambioModal from './components/TasaCambioModal';
 import CuentaModal from './components/CuentaModal';
 import EnvioModal from './components/EnvioModal';
 import TransaccionModal from './components/TransaccionModal';
+import GastoModal from './components/GastoModal';
 import PeerModal from './components/PeerModal';
 import ConversionModal from './components/ConversionModal';
 import InversorModal from './components/InversorModal';
@@ -79,6 +81,8 @@ import { Inversor } from '../shared/entities/Inversor';
 import { Aporte } from '../shared/entities/Aporte';
 import { Inversion } from '../shared/entities/Inversion';
 import { MovimientoCapital } from '../shared/entities/MovimientoCapital';
+import { Gasto } from '../shared/entities/Gasto';
+import { CATEGORIAS_GASTO } from '../shared/gastos';
 import {
   RentabilidadEnvio,
   ResumenRentabilidad,
@@ -134,6 +138,12 @@ const App: React.FC = () => {
   const [filtroFechaDesde, setFiltroFechaDesde] = useState('');
   const [filtroFechaHasta, setFiltroFechaHasta] = useState('');
 
+  // ========== ESTADO PARA GASTOS (Fase 10.1) ==========
+  const [gastos, setGastos] = useState<Gasto[]>([]);
+  const [isGastoModalOpen, setIsGastoModalOpen] = useState(false);
+  const [gastoEditar, setGastoEditar] = useState<Gasto | null>(null);
+  const [filtroGastoCategoria, setFiltroGastoCategoria] = useState<string>('todas');
+
   // ========== ESTADO PARA CONVERSIÓN (RECARGAS) ==========
   const [peers, setPeers] = useState<Peer[]>([]);
   const [isPeerModalOpen, setIsPeerModalOpen] = useState(false);
@@ -177,7 +187,7 @@ const App: React.FC = () => {
   const [inversorSeleccionado, setInversorSeleccionado] = useState<number | null>(null);
 
   // ========== PESTAÑA ACTIVA ==========
-  const [activeTab, setActiveTab] = useState<'productos' | 'monedas' | 'cuentas' | 'envios' | 'transacciones' | 'conversion' | 'ventas' | 'dashboard' | 'calculadora' | 'inversores'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'productos' | 'monedas' | 'cuentas' | 'envios' | 'transacciones' | 'gastos' | 'conversion' | 'ventas' | 'dashboard' | 'calculadora' | 'inversores'>('dashboard');
 
   // ========== ESTADO DE CARGA (Fase 4.7: skeletons) ==========
   // Mientras dura la carga se pintan esqueletos en vez de ceros/tablas vacías,
@@ -230,6 +240,30 @@ const App: React.FC = () => {
     return acum;
   }, [transaccionesFiltradas, cuentas]);
 
+  // ========== FILTRO Y TOTALES DE GASTOS ==========
+  const gastosFiltrados = useMemo(
+    () =>
+      gastos.filter(
+        (g) => filtroGastoCategoria === 'todas' || g.categoria === filtroGastoCategoria
+      ),
+    [gastos, filtroGastoCategoria]
+  );
+
+  // Se suman los equivalentes congelados en la fila (monto_usd / monto_cup), no
+  // el monto por la tasa actual: el histórico no debe moverse con la tasa de hoy.
+  const resumenGastos = useMemo(
+    () =>
+      gastosFiltrados.reduce(
+        (acc, g) => {
+          acc.totalUsd += Number(g.monto_usd) || 0;
+          acc.totalCup += Number(g.monto_cup) || 0;
+          return acc;
+        },
+        { totalUsd: 0, totalCup: 0 }
+      ),
+    [gastosFiltrados]
+  );
+
   // ========== PAGINACIÓN DE TABLAS (Fase 4.11) ==========
   const enviosFiltrados = useMemo(
     () => envios.filter((e) => filtroEnvioEstado === 'todos' || e.estado === filtroEnvioEstado),
@@ -255,6 +289,7 @@ const App: React.FC = () => {
     filtroFechaDesde,
     filtroFechaHasta,
   ]);
+  const pagGastos = usePaginacion(gastosFiltrados.length, 10, [filtroGastoCategoria]);
   const pagVentas = usePaginacion(ventasFiltradas.length, 10, [filtroVentaEstado]);
   const pagRentabilidad = usePaginacion(rentabilidad?.porEnvio.length || 0, 10);
   const pagSugerencias = usePaginacion(sugerenciasFiltradas.length, 10, [filtroCalculadora]);
@@ -369,6 +404,43 @@ const App: React.FC = () => {
   const openEditMonedaModal = (moneda: Moneda) => {
     setMonedaEditar(moneda);
     setIsMonedaModalOpen(true);
+  };
+
+  // ========== FUNCIONES PARA GASTOS (Fase 10.1) ==========
+  const fetchGastos = async () => {
+    const data = await window.electronAPI.getGastos();
+    setGastos(data);
+  };
+
+  const handleCreateGasto = async (gasto: Partial<Gasto>) => {
+    await window.electronAPI.createGasto(gasto);
+    fetchGastos();
+    toast.success('Gasto registrado');
+    setIsGastoModalOpen(false);
+  };
+
+  const handleUpdateGasto = async (id: number, gasto: Partial<Gasto>) => {
+    await window.electronAPI.updateGasto(id, gasto);
+    fetchGastos();
+    toast.success('Gasto actualizado');
+    setIsGastoModalOpen(false);
+  };
+
+  const handleDeleteGasto = (id: number) => {
+    pedirConfirmacion(
+      'Eliminar gasto',
+      '¿Estás seguro de eliminar este gasto? Se borra del histórico y de las sumas por categoría.',
+      async () => {
+        await window.electronAPI.deleteGasto(id);
+        fetchGastos();
+      },
+      'Eliminar'
+    );
+  };
+
+  const openEditGastoModal = (gasto: Gasto) => {
+    setGastoEditar(gasto);
+    setIsGastoModalOpen(true);
   };
 
   // ========== FUNCIONES PARA CUENTAS ==========
@@ -1426,6 +1498,9 @@ const App: React.FC = () => {
       fetchEnvios();
     } else if (activeTab === 'transacciones') {
       fetchTransacciones();
+    } else if (activeTab === 'gastos') {
+      fetchGastos();
+      fetchEnvios();
     } else if (activeTab === 'conversion') {
       fetchPeers();
       fetchFlujosConversion();
@@ -1539,6 +1614,12 @@ const App: React.FC = () => {
                   <span className="inline-flex items-center gap-1.5">
                     <Receipt className="h-4 w-4" />
                     Transacciones
+                  </span>
+                </Tabs.Tab>
+                <Tabs.Tab id="gastos">
+                  <span className="inline-flex items-center gap-1.5">
+                    <ReceiptText className="h-4 w-4" />
+                    Gastos
                   </span>
                 </Tabs.Tab>
                 <Tabs.Tab id="calculadora">
@@ -2076,6 +2157,137 @@ const App: React.FC = () => {
               transaccionEditar={transaccionEditar}
               cuentas={cuentas}
               monedas={monedas}
+            />
+          </>
+        )}
+
+        {/* ========== PESTAÑA GASTOS ========== */}
+        {activeTab === 'gastos' && (
+          <>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Gastos</h2>
+              <div className="flex items-center gap-2">
+                <Selector
+                  valor={filtroGastoCategoria}
+                  onChange={setFiltroGastoCategoria}
+                  opciones={[
+                    { valor: 'todas', etiqueta: 'Todas las categorías' },
+                    ...CATEGORIAS_GASTO.map((c) => ({ valor: c, etiqueta: c })),
+                  ]}
+                  fullWidth={false}
+                  variant="secondary"
+                />
+                <Button
+                  size="sm"
+                  variant="primary"
+                  onClick={() => {
+                    setGastoEditar(null);
+                    setIsGastoModalOpen(true);
+                  }}
+                >
+                  + Nuevo Gasto
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-4">
+              <Card className="p-3">
+                <p className="text-xs text-muted">Gastos</p>
+                <p className="text-lg font-semibold">{gastosFiltrados.length}</p>
+              </Card>
+              <Card className="p-3">
+                <p className="text-xs text-muted">Total en USD</p>
+                <p className="text-lg font-semibold">${resumenGastos.totalUsd.toFixed(2)}</p>
+              </Card>
+              <Card className="p-3">
+                <p className="text-xs text-muted">Total en CUP</p>
+                <p className="text-lg font-semibold">${resumenGastos.totalCup.toFixed(2)}</p>
+              </Card>
+            </div>
+
+            <Table aria-label="Gastos" className="mt-2">
+              <Table.Content>
+                <Table.Header>
+                  <Table.Column isRowHeader>Fecha</Table.Column>
+                  <Table.Column>Categoría</Table.Column>
+                  <Table.Column>Descripción</Table.Column>
+                  <Table.Column>Moneda</Table.Column>
+                  <Table.Column>Monto</Table.Column>
+                  <Table.Column>Tasa</Table.Column>
+                  <Table.Column>USD</Table.Column>
+                  <Table.Column>CUP</Table.Column>
+                  <Table.Column>Envío</Table.Column>
+                  <Table.Column>Acciones</Table.Column>
+                </Table.Header>
+                <Table.Body>
+                  {gastosFiltrados.length === 0 && (
+                    <Table.Row>
+                      <Table.Cell colSpan={10}>
+                        <EmptyState className="py-16 text-center">Sin gastos registrados</EmptyState>
+                      </Table.Cell>
+                    </Table.Row>
+                  )}
+                  {gastosFiltrados
+                    .slice(pagGastos.inicio, pagGastos.fin)
+                    .map((g) => {
+                      const envio = envios.find((e) => e.id === g.envio_id);
+                      return (
+                        <Table.Row key={g.id}>
+                          <Table.Cell>{g.fecha}</Table.Cell>
+                          <Table.Cell>{g.categoria}</Table.Cell>
+                          <Table.Cell>{g.descripcion || '—'}</Table.Cell>
+                          <Table.Cell>{g.moneda}</Table.Cell>
+                          <Table.Cell>
+                            ${Number(g.monto).toFixed(2)}
+                          </Table.Cell>
+                          <Table.Cell>{Number(g.tasa).toFixed(4)}</Table.Cell>
+                          <Table.Cell>${Number(g.monto_usd).toFixed(2)}</Table.Cell>
+                          <Table.Cell>${Number(g.monto_cup).toFixed(2)}</Table.Cell>
+                          <Table.Cell>{envio ? `#${envio.id} - ${envio.proveedor}` : '—'}</Table.Cell>
+                          <Table.Cell>
+                            <div className="flex flex-wrap items-center gap-3">
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => openEditGastoModal(g)}
+                              >
+                                Editar
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="danger"
+                                onClick={() => handleDeleteGasto(g.id)}
+                              >
+                                Eliminar
+                              </Button>
+                            </div>
+                          </Table.Cell>
+                        </Table.Row>
+                      );
+                    })}
+                </Table.Body>
+              </Table.Content>
+            </Table>
+
+            <Paginador
+              pagina={pagGastos.pagina}
+              totalPaginas={pagGastos.totalPaginas}
+              onCambio={pagGastos.setPagina}
+            />
+
+            <GastoModal
+              isOpen={isGastoModalOpen}
+              onClose={() => setIsGastoModalOpen(false)}
+              onSave={(gasto) => {
+                if (gastoEditar?.id) {
+                  handleUpdateGasto(gastoEditar.id, gasto);
+                } else {
+                  handleCreateGasto(gasto);
+                }
+              }}
+              gastoEditar={gastoEditar}
+              envios={envios}
+              tasaUSD={Number(tasaUSD) || 1}
             />
           </>
         )}

@@ -31,6 +31,8 @@ import { Inversor } from '../shared/entities/Inversor';
 import { Aporte } from '../shared/entities/Aporte';
 import { Inversion } from '../shared/entities/Inversion';
 import { MovimientoCapital } from '../shared/entities/MovimientoCapital';
+import { Gasto } from '../shared/entities/Gasto';
+import { normalizarImporteGasto } from '../shared/gastos';
 import {
   calcularResumenInversores,
   crearInversor,
@@ -274,7 +276,7 @@ async function initDatabase() {
       username: process.env.DB_USER || 'postgres',
       password: process.env.DB_PASSWORD || '1234',
       database: process.env.DB_NAME || 'mi-app-ventas-data-base',
-      entities: [Producto, Moneda, Cuenta, Envio, ProductoEnvio, Transaccion, TasaCambioHistorico, Peer, FlujoConversion, Venta, ProductoVenta, Inversor, Aporte, Inversion, MovimientoCapital],
+      entities: [Producto, Moneda, Cuenta, Envio, ProductoEnvio, Transaccion, TasaCambioHistorico, Peer, FlujoConversion, Venta, ProductoVenta, Inversor, Aporte, Inversion, MovimientoCapital, Gasto],
       synchronize: true,
       ssl: false,
       logging: false,
@@ -921,6 +923,85 @@ ipcMain.handle('get-transacciones-por-fecha', async (_, fecha) => {
   }
 });
 
+// ========== HANDLERS DE GASTOS ==========
+ipcMain.handle('get-gastos', async () => {
+  try {
+    const repo = connection!.getRepository(Gasto);
+    return await repo.find({ order: { fecha: 'DESC', id: 'DESC' } });
+  } catch (error) {
+    console.error('❌ Error al obtener gastos:', error);
+    return [];
+  }
+});
+
+ipcMain.handle('create-gasto', async (_, datos: Partial<Gasto>) => {
+  try {
+    const repo = connection!.getRepository(Gasto);
+    const monto = Number(datos.monto) || 0;
+    if (monto <= 0) throw new Error('El monto del gasto tiene que ser mayor que 0.');
+
+    const importe = normalizarImporteGasto(datos.moneda || 'USD', monto, datos.tasa ?? 1);
+    const nuevo = repo.create({
+      fecha: datos.fecha || new Date().toISOString().slice(0, 10),
+      categoria: String(datos.categoria || 'Otros').trim() || 'Otros',
+      descripcion: String(datos.descripcion || '').trim(),
+      envio_id: datos.envio_id ? Number(datos.envio_id) : null,
+      ...importe,
+    } as Gasto);
+    await repo.save(nuevo);
+    return nuevo;
+  } catch (error) {
+    console.error('❌ Error al crear gasto:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('update-gasto', async (_, id: number, datos: Partial<Gasto>) => {
+  try {
+    const repo = connection!.getRepository(Gasto);
+    const actual = await repo.findOne({ where: { id } });
+    if (!actual) throw new Error('El gasto que intentás editar ya no existe.');
+
+    const monto = Number(datos.monto) || 0;
+    if (monto <= 0) throw new Error('El monto del gasto tiene que ser mayor que 0.');
+
+    const importe = normalizarImporteGasto(
+      datos.moneda || actual.moneda,
+      monto,
+      datos.tasa ?? actual.tasa
+    );
+    await repo.update(id, {
+      fecha: datos.fecha || actual.fecha,
+      categoria: String(datos.categoria || actual.categoria).trim() || 'Otros',
+      descripcion: String(datos.descripcion ?? actual.descripcion ?? '').trim(),
+      envio_id: datos.envio_id ? Number(datos.envio_id) : null,
+      ...importe,
+    });
+    return await repo.findOne({ where: { id } });
+  } catch (error) {
+    console.error('❌ Error al actualizar gasto:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('delete-gasto', async (_, id: number) => {
+  try {
+    const repo = connection!.getRepository(Gasto);
+    const gasto = await repo.findOne({ where: { id } });
+    if (!gasto) throw new Error('El gasto que intentás eliminar ya no existe.');
+
+    await repo.delete(id);
+    registrarEnBitacora(
+      'delete-gasto',
+      `Gasto #${id} eliminado (${gasto.categoria}, ${gasto.moneda} ${Number(gasto.monto).toFixed(2)}, ${gasto.fecha})`
+    );
+    return true;
+  } catch (error) {
+    console.error('❌ Error al eliminar gasto:', error);
+    throw error;
+  }
+});
+
 // ========== HANDLERS DE PEERS (QvaPay) ==========
 ipcMain.handle('get-peers', async () => {
   try {
@@ -1319,6 +1400,7 @@ const ENTIDADES_RESPALDO: Array<{ nombre: string; entidad: any }> = [
   { nombre: 'Aporte', entidad: Aporte },
   { nombre: 'Inversion', entidad: Inversion },
   { nombre: 'MovimientoCapital', entidad: MovimientoCapital },
+  { nombre: 'Gasto', entidad: Gasto },
 ];
 
 ipcMain.handle('exportar-respaldo', async () => {

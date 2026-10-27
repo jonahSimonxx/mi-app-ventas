@@ -13,6 +13,7 @@ import { Inversor } from '../shared/entities/Inversor';
 import { Aporte } from '../shared/entities/Aporte';
 import { Inversion } from '../shared/entities/Inversion';
 import { MovimientoCapital } from '../shared/entities/MovimientoCapital';
+import { Gasto } from '../shared/entities/Gasto';
 import {
   ResumenInversor,
   DatosInversor,
@@ -114,6 +115,12 @@ export interface ElectronAPI {
   updateTransaccion: (id: number, transaccion: Partial<Transaccion>) => Promise<Transaccion | null>;
   deleteTransaccion: (id: number) => Promise<boolean>;
   getTransaccionesPorFecha: (fecha: string) => Promise<Transaccion[]>;
+
+  // Handlers de Gastos (Fase 10.1)
+  getGastos: () => Promise<Gasto[]>;
+  createGasto: (gasto: Partial<Gasto>) => Promise<Gasto>;
+  updateGasto: (id: number, gasto: Partial<Gasto>) => Promise<Gasto | null>;
+  deleteGasto: (id: number) => Promise<boolean>;
 
   // Handlers de Peers QvaPay
   getPeers: () => Promise<Peer[]>;

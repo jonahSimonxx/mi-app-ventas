@@ -526,13 +526,13 @@ Puramente de presentación: no tocó entidades, servicios FIFO ni handlers IPC.
 
 - [ ] Selector de **año** ni vista **anual** (todo se suma en una sola línea de tiempo de meses)
 - [ ] Sección/tab de **histórico** con tabla mes a mes (hoy solo gráficos)
-- [ ] **Gastos** como concepto propio: hoy "gasto" = costo + aranceles del envío y el 1 % devengado. No existe entidad `Gasto` ni registro de gastos operativos (luz, internet, transporte, aduana, etc.)
+- [x] **10.1 Gastos como concepto propio**: entidad `Gasto` (`fecha`, `categoria`, `descripcion`, `moneda`, `monto`, `tasa`, `monto_usd`, `monto_cup`, `envio_id?`), CRUD, pestaña "Gastos" con filtro por categoría, totales y paginación, incluida en el respaldo JSON y con bitácora al borrar. Las categorías son una lista cerrada (`CATEGORIAS_GASTO`) para que las sumas no se fragmenten.
 - [ ] Resumen **anual** (ganancia bruta, gastos, ganancia neta, inversión recuperada) con comparación año contra año
 - [ ] Desglose de **gastos por categoría** dentro de un mes/año
 - [ ] Exportar el histórico filtrado (CSV/PDF)
 
 ### Propuesta mínima
-1. Nueva entidad `Gasto` (`id`, `fecha`, `categoria`, `descripcion`, `monto_usd`, `monto_cup`, `tasa`, `envio_id?`) + CRUD y pestaña "Gastos".
+1. [x] Nueva entidad `Gasto` (`id`, `fecha`, `categoria`, `descripcion`, `monto_usd`, `monto_cup`, `tasa`, `envio_id?`) + CRUD y pestaña "Gastos".
 2. Vista "Histórico" con dos filtros: **Año** y **Mes** (Todos / Ene…Dic), tarjetas de resumen y tabla mensual.
 3. Reutilizar el motor FIFO para la ganancia y sumar los gastos **por su fecha** (no por la fecha del envío).
 4. Gráfico de barras por año/mes y comparativo contra el año anterior.

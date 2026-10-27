@@ -281,6 +281,7 @@ La hoja `Inventario` de los Excel solo trae **precio de venta** (no costo) y `Ga
 - `src/renderer/components/SelectorBuscable.tsx`: `ComboBox` de HeroUI con búsqueda; reemplaza al `Selector` **solo** en el producto de `EnvioModal` y `VentaModal` (donde la lista crece). Los filtros de 3 opciones siguen con `Selector`.
 - `src/renderer/components/CampoFecha.tsx`: `DatePicker` + `DateInputGroup` + `Calendar`; **único** campo de fecha de la app (12 usos). Sin `conHora` guarda `YYYY-MM-DD` y reemplaza los 4 `<Input type="date">` (filtros Desde/Hasta de Transacciones, `InversorModal`, `TasaCambioModal`). Con `conHora` muestra los segmentos de hora/minutos y devuelve `YYYY-MM-DDTHH:mm`; reemplaza los 8 `<Input type="datetime-local">` (`AporteModal`, `CobroComisionModal`, `ConversionModal`, `EnvioModal` recepción, `InversionModal`, `MovimientoCapitalModal`, `TransaccionModal`, `VentaModal`). El calendario es idéntico en ambos modos.
 - Lección: en HeroUI/RAC, `items` va en el **`ListBox`** (no en el `ComboBox`); si se pasa al `ComboBox`, React Aria desactiva su filtro "contains" y la búsqueda deja de filtrar. `DateInputGroup` se importa del subpath `@heroui/react/date-input-group`.
+
 - **Fase 4.7 cerrada** (salvo `dropdown`, descartado a propósito porque un menú por fila contradice la separación pedida de Editar/Eliminar). Cambios de esta tanda:
   - `src/renderer/index.css`: tema — `--accent` azul, `--radius: 0.625rem` y `--font-sans` con pila del sistema (sin descargar fuentes).
   - `src/renderer/components/ErrorFormulario.tsx` → `Alert status="danger"`; avisos inline de Envío/Inversión/Movimiento/Venta → `Alert` (`accent`/`warning`/`danger`).
@@ -289,6 +290,14 @@ La hoja `Inventario` de los Excel solo trae **precio de venta** (no costo) y `Ga
   - `ScrollShadow orientation="horizontal"` en las tablas crudas de `EnvioModal`, `VentaModal` y `TasaCambioModal` (las `Table` de HeroUI ya traen `scrollContainer` propio).
   - `NumInput` acepta `prefijo`/`sufijo` y usa `InputGroup` solo cuando se pasan (sin ellos sigue siendo el `<input>` crudo, para no alterar el resto de formularios). Aplicado a `$` en Aporte/Cobro/Inversión/Movimiento, `und` en unidades, moneda en Conversión/Transacción y `CUP` en TasaCambio.
   - Lección: `ScrollShadow` **no** debe envolver una `Table` de HeroUI (duplica el scroll); va en tablas HTML crudas o listas.
+
+### Fase 10.1: gastos operativos
+- `src/shared/entities/Gasto.ts` (nuevo): `fecha` (`date`, `YYYY-MM-DD`), `categoria`, `descripcion`, `moneda` (`USD`/`CUP`), `monto`, `tasa` (CUP por USD) y **los dos equivalentes congelados** (`monto_usd`, `monto_cup`), más `envio_id?` como id suelto (sin relación TypeORM, para que el respaldo JSON siga plano). Se congelan ambos equivalentes para que el histórico no cambie cuando se actualice la tasa de la app.
+- `src/shared/gastos.ts` (nuevo): `CATEGORIAS_GASTO` (lista cerrada: Flete, Aduana, Transporte, Luz, Internet, Alquiler, Salarios, Comisiones, Otros) y `normalizarImporteGasto(moneda, monto, tasa)`, usado por el modal y por los handlers (una sola fórmula de conversión).
+- Persistencia: `Gasto` en `entities` de `createConnection` (con `synchronize: true` la tabla se crea sola), en `ENTIDADES_RESPALDO` y handlers `get/create/update/delete-gasto`; el borrado deja constancia en `bitacora-seguridad.log`. El alta/edición valida `monto > 0` en el proceso main, no solo en el renderer.
+- `src/renderer/components/GastoModal.tsx` (nuevo): `CampoFecha` solo fecha, `Selector` de categoría y de moneda, `NumInput` con sufijo de moneda, tasa CUP/USD (por defecto la actual), envío opcional y vista previa de ambos equivalentes. El aviso recuerda **no** duplicar el flete/aranceles que ya viven en el `Envio`.
+- Pestaña "Gastos" en `App.tsx`: tabla con fecha, categoría, descripción, moneda, monto, tasa, USD, CUP y envío; filtro por categoría, tarjetas de cantidad/total USD/total CUP y paginación. Las sumas usan `monto_usd`/`monto_cup` de cada fila, no la tasa actual.
+- Lección: las columnas `numeric` llegan como string al renderer; tanto la tabla como los totales pasan por `Number(...)`.
 
 ### Trabajar desde otra PC
 La BD es **remota (Supabase)**, así que no hay que copiar datos: ambas PCs ven los mismos registros. Solo hay que preparar el entorno:

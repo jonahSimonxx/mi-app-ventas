@@ -69,6 +69,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   deleteTransaccion: (id: number) => ipcRenderer.invoke('delete-transaccion', id),
   getTransaccionesPorFecha: (fecha: string) => ipcRenderer.invoke('get-transacciones-por-fecha', fecha),
 
+  // Handlers de Gastos (Fase 10.1)
+  getGastos: () => ipcRenderer.invoke('get-gastos'),
+  createGasto: (gasto: any) => ipcRenderer.invoke('create-gasto', gasto),
+  updateGasto: (id: number, gasto: any) => ipcRenderer.invoke('update-gasto', id, gasto),
+  deleteGasto: (id: number) => ipcRenderer.invoke('delete-gasto', id),
+
   // Handlers de Peers QvaPay
   getPeers: () => ipcRenderer.invoke('get-peers'),
   createPeer: (peer: any) => ipcRenderer.invoke('create-peer', peer),
