@@ -1707,21 +1707,23 @@ const App: React.FC = () => {
                       <Table.Cell>{m.codigo}</Table.Cell>
                       <Table.Cell>{m.nombre}</Table.Cell>
                       <Table.Cell>{Number(m.tasa_cambio).toFixed(2)}</Table.Cell>
-                      <Table.Cell className="space-x-2">
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => openEditMonedaModal(m)}
-                        >
-                          Editar
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="danger"
-                          onClick={() => handleDeleteMoneda(m.codigo)}
-                        >
-                          Eliminar
-                        </Button>
+                      <Table.Cell>
+                        <div className="flex flex-wrap items-center gap-3">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => openEditMonedaModal(m)}
+                          >
+                            Editar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            onClick={() => handleDeleteMoneda(m.codigo)}
+                          >
+                            Eliminar
+                          </Button>
+                        </div>
                       </Table.Cell>
                     </Table.Row>
                   ))}
@@ -1784,21 +1786,23 @@ const App: React.FC = () => {
                       <Table.Cell>{c.nombre}</Table.Cell>
                       <Table.Cell>{c.moneda?.codigo || 'N/A'}</Table.Cell>
                       <Table.Cell>{Number(c.saldo).toFixed(2)} {c.moneda?.codigo || ''}</Table.Cell>
-                      <Table.Cell className="space-x-2">
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => openEditCuentaModal(c)}
-                        >
-                          Editar
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="danger"
-                          onClick={() => handleDeleteCuenta(c.id_cuenta)}
-                        >
-                          Eliminar
-                        </Button>
+                      <Table.Cell>
+                        <div className="flex flex-wrap items-center gap-3">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => openEditCuentaModal(c)}
+                          >
+                            Editar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            onClick={() => handleDeleteCuenta(c.id_cuenta)}
+                          >
+                            Eliminar
+                          </Button>
+                        </div>
                       </Table.Cell>
                     </Table.Row>
                   ))}
@@ -1888,21 +1892,23 @@ const App: React.FC = () => {
                           </Chip>
                         </Table.Cell>
                         <Table.Cell>{new Date(e.fecha_creacion).toLocaleDateString()}</Table.Cell>
-                        <Table.Cell className="space-x-2">
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => openEditEnvioModal(e)}
-                          >
-                            Editar
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="danger"
-                            onClick={() => handleDeleteEnvio(e.id)}
-                          >
-                            Eliminar
-                          </Button>
+                        <Table.Cell>
+                          <div className="flex flex-wrap items-center gap-3">
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => openEditEnvioModal(e)}
+                            >
+                              Editar
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="danger"
+                              onClick={() => handleDeleteEnvio(e.id)}
+                            >
+                              Eliminar
+                            </Button>
+                          </div>
                         </Table.Cell>
                       </Table.Row>
                     ))}
@@ -2018,21 +2024,23 @@ const App: React.FC = () => {
                       <Table.Cell>{Number(t.tasa_cambio).toFixed(4)}</Table.Cell>
                       <Table.Cell>${Number(t.comision).toFixed(2)}</Table.Cell>
                       <Table.Cell>{new Date(t.fecha).toLocaleDateString()}</Table.Cell>
-                      <Table.Cell className="space-x-2">
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => openEditTransaccionModal(t)}
-                        >
-                          Editar
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="danger"
-                          onClick={() => handleDeleteTransaccion(t.id_trans)}
-                        >
-                          Eliminar
-                        </Button>
+                      <Table.Cell>
+                        <div className="flex flex-wrap items-center gap-3">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => openEditTransaccionModal(t)}
+                          >
+                            Editar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            onClick={() => handleDeleteTransaccion(t.id_trans)}
+                          >
+                            Eliminar
+                          </Button>
+                        </div>
                       </Table.Cell>
                     </Table.Row>
                   ))}
@@ -2134,22 +2142,24 @@ const App: React.FC = () => {
                           ${Number(v.ganancia_usd).toFixed(2)}
                         </Table.Cell>
                         <Table.Cell>{new Date(v.fecha).toLocaleDateString()}</Table.Cell>
-                        <Table.Cell className="space-x-2">
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => openEditVentaModal(v)}
-                          >
-                            Editar
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="danger"
-                            onClick={() => handleDeleteVenta(v.id)}
-                          >
-                            Eliminar
-                          </Button>
-                      </Table.Cell>
+                        <Table.Cell>
+                          <div className="flex flex-wrap items-center gap-3">
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => openEditVentaModal(v)}
+                            >
+                              Editar
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="danger"
+                              onClick={() => handleDeleteVenta(v.id)}
+                            >
+                              Eliminar
+                            </Button>
+                          </div>
+                        </Table.Cell>
                       </Table.Row>
                     ))}
                 </Table.Body>
@@ -3326,24 +3336,26 @@ const App: React.FC = () => {
                         </Chip>
                       </Table.Cell>
                       <Table.Cell>{p.descripcion || ''}</Table.Cell>
-                      <Table.Cell className="space-x-2">
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => {
-                            setPeerEditar(p);
-                            setIsPeerModalOpen(true);
-                          }}
-                        >
-                          Editar
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="danger"
-                          onClick={() => handleDeletePeer(p.id)}
-                        >
-                          Eliminar
-                        </Button>
+                      <Table.Cell>
+                        <div className="flex flex-wrap items-center gap-3">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => {
+                              setPeerEditar(p);
+                              setIsPeerModalOpen(true);
+                            }}
+                          >
+                            Editar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            onClick={() => handleDeletePeer(p.id)}
+                          >
+                            Eliminar
+                          </Button>
+                        </div>
                       </Table.Cell>
                     </Table.Row>
                   ))}
@@ -3387,24 +3399,26 @@ const App: React.FC = () => {
                       </Table.Cell>
                       <Table.Cell>{Number(f.tasa_efectiva).toFixed(4)}</Table.Cell>
                       <Table.Cell>{new Date(f.fecha).toLocaleDateString()}</Table.Cell>
-                      <Table.Cell className="space-x-2">
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => {
-                            setFlujoEditar(f);
-                            setIsConversionModalOpen(true);
-                          }}
-                        >
-                          Editar
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="danger"
-                          onClick={() => handleDeleteFlujo(f.id)}
-                        >
-                          Eliminar
-                        </Button>
+                      <Table.Cell>
+                        <div className="flex flex-wrap items-center gap-3">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => {
+                              setFlujoEditar(f);
+                              setIsConversionModalOpen(true);
+                            }}
+                          >
+                            Editar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            onClick={() => handleDeleteFlujo(f.id)}
+                          >
+                            Eliminar
+                          </Button>
+                        </div>
                       </Table.Cell>
                     </Table.Row>
                   ))}
