@@ -8,6 +8,7 @@ import { Modal } from '@heroui/react/modal';
 import { Button } from '@heroui/react/button';
 import { Input } from '@heroui/react/input';
 import Selector from './Selector';
+import SelectorBuscable from './SelectorBuscable';
 
 interface ProductoEnEnvio {
   id?: number;
@@ -412,7 +413,7 @@ const EnvioModal: React.FC<EnvioModalProps> = ({
             <div className={`grid grid-cols-3 gap-2 mb-2 ${productosBloqueados ? 'opacity-50 pointer-events-none' : ''}`}>
               <div>
                 <label className="block text-sm font-medium mb-1">Producto:</label>
-                <Selector
+                <SelectorBuscable
                   valor={productoSeleccionado}
                   onChange={setProductoSeleccionado}
                   opciones={productos.map((p) => ({ valor: p.id_prod, etiqueta: p.nombre_prod }))}

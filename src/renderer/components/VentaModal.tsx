@@ -5,6 +5,7 @@ import { PreviewCostoVenta } from '../../main/services/rentabilidadService';
 import NumInput from './NumInput';
 import ErrorFormulario from './ErrorFormulario';
 import Selector from './Selector';
+import SelectorBuscable from './SelectorBuscable';
 import { Modal, Button, Input, Select, SelectTrigger, SelectValue, SelectPopover, ListBox, ListBoxItem } from '@heroui/react';
 
 interface ProductoEnVenta {
@@ -414,7 +415,7 @@ const VentaModal: React.FC<VentaModalProps> = ({
             <div className="grid grid-cols-3 gap-2 mb-2">
               <div>
                 <label className="block text-sm font-medium mb-1">Producto:</label>
-                <Selector
+                <SelectorBuscable
                   valor={productoSeleccionado}
                   onChange={setProductoSeleccionado}
                   opciones={productos

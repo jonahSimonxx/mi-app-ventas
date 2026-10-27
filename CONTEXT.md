@@ -277,6 +277,12 @@ La hoja `Inventario` de los Excel solo trae **precio de venta** (no costo) y `Ga
 - `src/renderer/components/VentaModal.tsx`: el selector de producto ahora usa el componente `Selector` (igual que `EnvioModal`) en vez del `Select` anterior, y la lista se filtra a `stock_actual > 0` (solo se venden productos con stock).
 - `src/renderer/App.tsx`: se llama `fetchProductos()` al entrar a la pestaña Ventas, al abrir "Nueva Venta" desde la cabecera y desde el Lobby, para que el selector no muestre datos viejos.
 
+### UI: combo-box y date-picker (Fase 4.7)
+- `src/renderer/components/SelectorBuscable.tsx`: `ComboBox` de HeroUI con búsqueda; reemplaza al `Selector` **solo** en el producto de `EnvioModal` y `VentaModal` (donde la lista crece). Los filtros de 3 opciones siguen con `Selector`.
+- `src/renderer/components/CampoFecha.tsx`: `DatePicker` + `DateInputGroup` + `Calendar`; reemplaza los 4 `<Input type="date">` (filtros Desde/Hasta de Transacciones, `InversorModal`, `TasaCambioModal`). Sigue guardando `YYYY-MM-DD`.
+- Lección: en HeroUI/RAC, `items` va en el **`ListBox`** (no en el `ComboBox`); si se pasa al `ComboBox`, React Aria desactiva su filtro "contains" y la búsqueda deja de filtrar. `DateInputGroup` se importa del subpath `@heroui/react/date-input-group`.
+- **Fase 4.7 sigue incompleta**: quedan dropdown, input-group, alert, separator, close-button, progress-circle, meter, `scroll-shadow` y el tema (ver `TODO.md`).
+
 ### Trabajar desde otra PC
 La BD es **remota (Supabase)**, así que no hay que copiar datos: ambas PCs ven los mismos registros. Solo hay que preparar el entorno:
 1. `git clone` del repo (o copiar la carpeta) e instalar dependencias: `npm install`.

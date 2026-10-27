@@ -4,7 +4,6 @@ import { Tabs } from '@heroui/react/tabs';
 import { Card } from '@heroui/react/card';
 import { Button } from '@heroui/react/button';
 import { Skeleton } from '@heroui/react/skeleton';
-import { Input } from '@heroui/react/input';
 import { EmptyState } from '@heroui/react/empty-state';
 import { Chip } from '@heroui/react/chip';
 import { toast } from '@heroui/react';
@@ -86,6 +85,7 @@ import {
 } from '../main/services/rentabilidadService';
 import { ResumenInversor } from '../main/services/inversoresService';
 import Selector from './components/Selector';
+import CampoFecha from './components/CampoFecha';
 
 const App: React.FC = () => {
   const { theme, onToggleTheme } = useTheme();
@@ -1946,16 +1946,16 @@ const App: React.FC = () => {
               <h2 className="text-xl font-semibold">Transacciones</h2>
               <div className="flex items-center gap-2">
                 <label className="text-sm text-foreground/70">Desde:</label>
-                <Input
-                  type="date"
-                  value={filtroFechaDesde}
-                  onChange={(e) => setFiltroFechaDesde(e.target.value)}
+                <CampoFecha
+                  valor={filtroFechaDesde}
+                  onChange={setFiltroFechaDesde}
+                  etiqueta="Fecha desde"
                 />
                 <label className="text-sm text-foreground/70">Hasta:</label>
-                <Input
-                  type="date"
-                  value={filtroFechaHasta}
-                  onChange={(e) => setFiltroFechaHasta(e.target.value)}
+                <CampoFecha
+                  valor={filtroFechaHasta}
+                  onChange={setFiltroFechaHasta}
+                  etiqueta="Fecha hasta"
                 />
                 <Button
                   size="sm"

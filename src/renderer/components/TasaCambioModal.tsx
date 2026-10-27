@@ -12,9 +12,9 @@ import {
 import { TasaCambioHistorico } from '../../shared/entities/TasaCambioHistorico';
 import NumInput from './NumInput';
 import ErrorFormulario from './ErrorFormulario';
+import CampoFecha from './CampoFecha';
 import { Modal } from '@heroui/react/modal';
 import { Button } from '@heroui/react/button';
-import { Input } from '@heroui/react/input';
 
 interface TasaCambioModalProps {
   isOpen: boolean;
@@ -129,11 +129,11 @@ const TasaCambioModal: React.FC<TasaCambioModalProps> = ({ isOpen, onClose, onCh
           <div className="grid grid-cols-4 gap-3 mb-6 items-end">
           <div>
             <label className="block text-sm font-medium mb-1">Fecha</label>
-            <Input
+            <CampoFecha
+              valor={form.fecha}
+              onChange={(fecha) => setForm({ ...form, fecha })}
+              etiqueta="Fecha"
               fullWidth
-              type="date"
-              value={form.fecha}
-              onChange={(e) => setForm({ ...form, fecha: e.target.value })}
               required
             />
           </div>

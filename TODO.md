@@ -278,8 +278,8 @@ Decisiones del usuario (todas cerradas):
 |---|---|
 | **table** | El mayor salto visual: Productos, Envíos, Ventas, Transacciones, Conversión y la Calculadora de Precios. Reemplaza las `<table>` escritas a mano. |
 | **alert-dialog** | Sustituye **todos** los `window.confirm` actuales (borrar Producto, Envío, Venta, Transacción, Peer) y los `window.alert` recién añadidos. |
-| **date-picker** | Reemplaza los `<input type="date">`: fecha de recepción de envíos, fecha de venta, y filtros desde/hasta de Transacciones. |
-| **combo-box** | Selectores con búsqueda: producto en `EnvioModal` y `VentaModal`, cuenta origen/destino en Transacciones, forma de pago, moneda. |
+| **date-picker** | ✅ `CampoFecha` con calendario en los 4 sitios: filtros desde/hasta de Transacciones, `InversorModal` y `TasaCambioModal`. |
+| **combo-box** | ✅ `SelectorBuscable` con búsqueda en el producto de `EnvioModal` y `VentaModal`. Los filtros de 3 opciones siguen con `Selector` (Select). |
 | **input-group** | Campos de monto con prefijo/sufijo de moneda (USD / CUP / USDT) y buscador con icono. |
 | **alert** | Avisos no bloqueantes: stock bajo, envío con ventas, peer en uso, pérdida en conversión. |
 | **progress-circle** | Tiempos de carga dentro de la app (indicado por el usuario). Reutilizable para mostrar la tasa efectiva de un flujo de conversión. |
@@ -295,7 +295,7 @@ Decisiones del usuario (todas cerradas):
 
 ### 📊 Auditoría real (2026-10-27)
 
-Medido en `src/renderer` (no de memoria). **La Fase 4.7 NO está terminada**: falta todo lo marcado en rojo.
+Medido en `src/renderer` (no de memoria). **La Fase 4.7 NO está terminada**: faltan 7 componentes + `scroll-shadow` y el tema.
 
 | Componente | Estado | Dónde / qué falta |
 |---|---|---|
@@ -305,8 +305,8 @@ Medido en `src/renderer` (no de memoria). **La Fase 4.7 NO está terminada**: fa
 | card | ✅ | resúmenes y contenedores de gráficos |
 | skeleton | ✅ | Lobby y tablas |
 | button | ✅ | CTAs y acciones por fila |
-| **date-picker** | ❌ | quedan 4 `<input type="date">`: filtros de Transacciones (`App.tsx` 1942 y 1948), `InversorModal`, `TasaCambioModal` |
-| **combo-box** | ❌ | `Selector` es el `Select` de HeroUI, **sin búsqueda**; en Envío/Venta con muchos productos se vuelve incómodo |
+| **date-picker** | ✅ | `CampoFecha.tsx` (`DatePicker` + `DateInputGroup` + `Calendar`) en filtros de Transacciones, `InversorModal` y `TasaCambioModal`; 0 `<input type="date">` |
+| **combo-box** | ✅ | `SelectorBuscable.tsx` (`ComboBox`) en producto de `EnvioModal` y `VentaModal` |
 | **dropdown** | ❌ | las filas siguen con 2 botones (Editar/Eliminar); es la solución natural a la separación pedida en Productos |
 | **input-group** | ❌ | montos con prefijo/sufijo de moneda (USD/CUP/USDT) |
 | **alert** | ❌ | avisos inline escritos a mano (`ErrorFormulario`, avisos de modales) |
@@ -463,7 +463,7 @@ Existe `src/renderer/components/Lobby.tsx` y está integrado en la pestaña Dash
 - [x] Eliminar dependencias no usadas (axios, cheerio) — quitadas de `package.json` (`axios`, `cheerio`, `@types/cheerio`); `npm install` podó 23 paquetes. `axios` sigue en `node_modules` como transitiva de otro paquete, es normal. Typecheck y build en verde
 - [x] Agregar validaciones en forms — componente `ErrorFormulario` con el patrón `const [errores, setErrores]` + `setErrores(errores); if (errores.length) return;` en el `handleSubmit`. Cubiertos **13 modales**: Envío, Venta, Transacción, Conversión, Tasa, Moneda, Producto, Cuenta, Peer, Inversor, Aporte, Inversión y Movimiento de capital. `CobroComisionModal` se dejó como estaba: ya validaba (`excede` + `isDisabled` + aviso inline) y es el modelo a seguir. Además, guard en el backend de `update-envio` (no se puede marcar "recibido" un envío sin unidades)
 - [x] **Modales pegados en una esquina y sin poder ver todo el formulario (Fase 4.14)** — dos defectos de estructura, ambos en los 18 bloques `Modal` de 14 archivos: (1) `<Modal.Backdrop />` estaba auto-cerrado y el `Modal.Container` era su hermano, así que react-aria-components se creaba su overlay interno sin `.modal__backdrop` → sin centrado y sin límite de altura (el `Container` va **dentro** del `Backdrop`); (2) el `<form>` (`display:block`) se interponía entre `Modal.Dialog` y `Modal.Body` y cortaba la cadena flex que hace scrollear el body → los campos inferiores quedaban inalcanzables (`<form className="flex min-h-0 flex-1 flex-col">`, y en `TasaCambioModal` sus clases `grid` a un `<div>` interno). Envío y Venta pasaron a `size="full"` por sus tablas de 7 columnas
-- [ ] Agregar búsqueda en tablas → pendiente real: cubierto por **combo-box** (Fase 4.7, aún sin migrar)
+- [ ] Agregar búsqueda en tablas → parcial: los selectores de producto de Envío/Venta ya usan **combo-box** (`SelectorBuscable`); falta un buscador de texto dentro de las tablas
 - [x] Agregar paginación → hecho con **pagination** (Fase 4.7): `Paginador` en Productos, Envíos, Ventas y Transacciones
 - [x] Agregar confirmación antes de eliminar → hecho con **alert-dialog** (Fase 4.7): `DialogoAviso`, 0 `window.confirm`
 - [ ] Mejorar manejo de errores → parcial: `mensajeDeError` + `toast.error`; los avisos inline aún no usan **alert** (Fase 4.7)
@@ -575,9 +575,9 @@ Cuando llegue el momento, diseñar **offline-first**, porque la app hoy **depend
 Estado a 2026-10-27. Las fases 0–4.6, 4.8, 4.16 y 9 están terminadas. Lo que viene, en orden:
 
 ```
-1. Fase 4.7 restante (UI)  ← lo que falta de HeroUI: date-picker, combo-box,
-   dropdown, alert, input-group, separator, close-button, progress-circle,
-   meter, scroll-shadow y el tema
+1. Fase 4.7 restante (UI)  ← lo que falta de HeroUI: dropdown, alert,
+   input-group, separator, close-button, progress-circle, meter,
+   scroll-shadow y el tema
 2. Fase 10 (Históricos por mes/año + gastos)  ← se necesita antes/después de
    cargar los históricos a mano
 3. Fase 6 final (pulido del Lobby: Button/Chip/tokens/intro)
@@ -592,7 +592,7 @@ Estado a 2026-10-27. Las fases 0–4.6, 4.8, 4.16 y 9 están terminadas. Lo que 
 ## Notas
 - **Fase 7 (Excel) está descartada**: los históricos se cargan a mano. No volver a proponer un importador salvo petición explícita.
 - **Fase 6 (Lobby) ya existe**, pero no es la versión final: quedan los `<button>`/pills/colores fijos (ver el bloque de pendientes de la fase).
-- **Fase 4.7 no está terminada**: 9 componentes sin migrar (date-picker, combo-box, dropdown, input-group, alert, separator, close-button, progress-circle, meter) + `scroll-shadow` parcial + el tema; la tabla de auditoría de esa fase dice exactamente dónde está cada uno.
+- **Fase 4.7 no está terminada**: 7 componentes sin migrar (dropdown, input-group, alert, separator, close-button, progress-circle, meter) + `scroll-shadow` parcial + el tema; la tabla de auditoría de esa fase dice exactamente dónde está cada uno.
 - Fase 5 (Android) requiere investigación previa de herramientas. Su modo offline es la base de la Fase 12.
 - Fases 4.5 y 4.6 dependen del modelo FIFO: el costo real de cada venta se deriva de los envíos, así que `precio_unitario` en `EnvioModal` debe reflejar lo que realmente se pagó por cada artículo en ese envío.
 - Fase 4.7 (HeroUI) es puramente de presentación: **no debe tocar entidades, servicios FIFO ni handlers IPC**. El orden 4.5 → 4.6 → 4.7 es deliberado, para tener la lógica estable antes de pintar la interfaz.
