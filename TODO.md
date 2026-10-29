@@ -522,20 +522,20 @@ Puramente de presentación: no tocó entidades, servicios FIFO ni handlers IPC.
 
 ## Fase 10: Históricos por mes y por año (ganancias y gastos)
 
-**Auditoría (2026-10-27): existe a medias.** El Dashboard ya tiene gráficos **por mes** derivados de las ventas y envíos (`ventasPorMes`, `importesPorMes`, `comparativoImportesVentas`, `invertedVsRecovered`) y Exportar CSV incluye "Mes,Vendido,Ganancia". Pero **no hay**:
+**Auditoría (2026-10-29): cerrada.** El Dashboard ya tenía gráficos **por mes** derivados de las ventas y envíos. La Fase 10.2 agregó la pestaña **Histórico** con filtros de año/mes, resumen del período, tabla mes a mes, gastos por categoría, comparación año contra año y exportación CSV.
 
-- [ ] Selector de **año** ni vista **anual** (todo se suma en una sola línea de tiempo de meses)
-- [ ] Sección/tab de **histórico** con tabla mes a mes (hoy solo gráficos)
+- [x] Selector de **año** y **mes**, con vista **anual** (tarjetas de resumen del período elegido)
+- [x] Sección/tab de **histórico** con tabla mes a mes
 - [x] **10.1 Gastos como concepto propio**: entidad `Gasto` (`fecha`, `categoria`, `descripcion`, `moneda`, `monto`, `tasa`, `monto_usd`, `monto_cup`, `envio_id?`), CRUD, pestaña "Gastos" con filtro por categoría, totales y paginación, incluida en el respaldo JSON y con bitácora al borrar. Las categorías son una lista cerrada (`CATEGORIAS_GASTO`) para que las sumas no se fragmenten.
-- [ ] Resumen **anual** (ganancia bruta, gastos, ganancia neta, inversión recuperada) con comparación año contra año
-- [ ] Desglose de **gastos por categoría** dentro de un mes/año
-- [ ] Exportar el histórico filtrado (CSV/PDF)
+- [x] **10.2 Histórico**: resumen (vendido, ganancia bruta, gastos, ganancia neta y capital recuperado), tabla mes a mes, gráfico de evolución y comparación año contra año.
+- [x] Desglose de **gastos por categoría** dentro de un mes/año
+- [x] Exportar el histórico filtrado a **CSV** (PDF queda para más adelante)
 
 ### Propuesta mínima
 1. [x] Nueva entidad `Gasto` (`id`, `fecha`, `categoria`, `descripcion`, `monto_usd`, `monto_cup`, `tasa`, `envio_id?`) + CRUD y pestaña "Gastos".
-2. Vista "Histórico" con dos filtros: **Año** y **Mes** (Todos / Ene…Dic), tarjetas de resumen y tabla mensual.
-3. Reutilizar el motor FIFO para la ganancia y sumar los gastos **por su fecha** (no por la fecha del envío).
-4. Gráfico de barras por año/mes y comparativo contra el año anterior.
+2. [x] Vista "Histórico" con dos filtros: **Año** y **Mes** (Todos / Ene…Dic), tarjetas de resumen y tabla mensual.
+3. [x] Reutilizar el motor FIFO para la ganancia y sumar los gastos **por su fecha** (no por la fecha del envío).
+4. [x] Gráfico de barras por año/mes y comparativo contra el año anterior.
 
 ---
 

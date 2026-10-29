@@ -299,6 +299,14 @@ La hoja `Inventario` de los Excel solo trae **precio de venta** (no costo) y `Ga
 - Pestaña "Gastos" en `App.tsx`: tabla con fecha, categoría, descripción, moneda, monto, tasa, USD, CUP y envío; filtro por categoría, tarjetas de cantidad/total USD/total CUP y paginación. Las sumas usan `monto_usd`/`monto_cup` de cada fila, no la tasa actual.
 - Lección: las columnas `numeric` llegan como string al renderer; tanto la tabla como los totales pasan por `Number(...)`.
 
+### Fase 10.2: histórico por mes y año
+- Pestaña **Histórico** en `App.tsx` con filtros de **mes** (Todos / Ene…Dic) y **año** (Todos / años con datos). El año por defecto es el más reciente; si el usuario elige "Todos" se respeta.
+- **Criterio de fechas**: ventas y ganancia bruta por `Venta.fecha`; gastos por `Gasto.fecha`; el capital recuperado es el **costo FIFO de lo vendido** (`Venta.costo_total_usd`). Este último se eligió así para no duplicar el concepto "Recuperado" del Dashboard (que es ingreso por ventas atribuido a cada envío) y para mostrar qué parte de la venta repuso inventario.
+- Con un año concreto se muestran siempre los **12 meses**, incluso en cero, para que se vean los huecos de la carga manual. Con "Todos los años" solo aparecen los meses que tienen actividad.
+- Tarjetas del período: Vendido, Ganancia bruta, Gastos, Ganancia neta (bruta − gastos) y Capital recuperado. Tabla mes a mes, gráfico de barras (vendido / ganancia / gastos), desglose de gastos por categoría y comparación **año contra año** con la misma selección de mes (si hay un mes elegido, compara ese mes contra el mismo del año anterior).
+- **Exportar CSV** del período filtrado: resumen, tabla mes a mes, gastos por categoría y comparativo. El CSV del Dashboard no se tocó.
+- Lección: `Gasto.fecha` es `date` (`YYYY-MM-DD`); hay que construir la fecha como `new Date(\`${fecha}T00:00:00\`)` para que no caiga en el día anterior por la zona horaria (Cuba, UTC−5). El helper `claveMes` centraliza esa conversión y también acepta `Date` para las ventas.
+
 ### Trabajar desde otra PC
 La BD es **remota (Supabase)**, así que no hay que copiar datos: ambas PCs ven los mismos registros. Solo hay que preparar el entorno:
 1. `git clone` del repo (o copiar la carpeta) e instalar dependencias: `npm install`.

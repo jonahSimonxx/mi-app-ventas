@@ -19,6 +19,7 @@ import {
   Wallet,
   Receipt,
   ReceiptText,
+  History,
   Calculator,
   Coins,
   Sun,
@@ -94,6 +95,93 @@ import Selector from './components/Selector';
 import CampoFecha from './components/CampoFecha';
 import Cargando from './components/Cargando';
 
+// ========== HISTÓRICO (Fase 10.2) ==========
+const MESES_CORTOS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+const MESES_LARGOS = [
+  'Enero',
+  'Febrero',
+  'Marzo',
+  'Abril',
+  'Mayo',
+  'Junio',
+  'Julio',
+  'Agosto',
+  'Septiembre',
+  'Octubre',
+  'Noviembre',
+  'Diciembre',
+];
+
+const claveMes = (fecha: Date | string | null | undefined): { clave: string; anio: number; mes: number } | null => {
+  if (!fecha) return null;
+  // `Gasto.fecha` llega como `YYYY-MM-DD`; sin la hora, `new Date` lo interpreta
+  // como UTC y en Cuba (UTC−5) el gasto caería en el día anterior.
+  const d =
+    typeof fecha === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(fecha)
+      ? new Date(`${fecha}T00:00:00`)
+      : new Date(fecha);
+  if (Number.isNaN(d.getTime())) return null;
+  const anio = d.getFullYear();
+  const mes = d.getMonth() + 1;
+  return { clave: `${anio}-${String(mes).padStart(2, '0')}`, anio, mes };
+};
+
+interface FilasHistorico {
+  clave: string;
+  anio: number;
+  mes: number;
+  etiqueta: string;
+  vendido: number;
+  gananciaBruta: number;
+  gastos: number;
+  gananciaNeta: number;
+  capitalRecuperado: number;
+}
+
+interface TotalesHistorico {
+  vendido: number;
+  gananciaBruta: number;
+  gastos: number;
+  gananciaNeta: number;
+  capitalRecuperado: number;
+}
+
+/**
+ * Totales de un año (y opcionalmente un mes) con los mismos criterios del
+ * Histórico: ventas por su fecha, gastos por la suya y capital recuperado =
+ * costo real FIFO de lo vendido (la parte de la venta que repone inventario).
+ */
+const totalesPeriodo = (
+  ventas: Venta[],
+  gastos: Gasto[],
+  anio: number,
+  mes: number | null
+): TotalesHistorico => {
+  const totales: TotalesHistorico = {
+    vendido: 0,
+    gananciaBruta: 0,
+    gastos: 0,
+    gananciaNeta: 0,
+    capitalRecuperado: 0,
+  };
+
+  for (const v of ventas) {
+    const p = claveMes(v.fecha);
+    if (!p || p.anio !== anio || (mes !== null && p.mes !== mes)) continue;
+    totales.vendido += Number(v.total_usd) || 0;
+    totales.gananciaBruta += Number(v.ganancia_usd) || 0;
+    totales.capitalRecuperado += Number(v.costo_total_usd) || 0;
+  }
+  for (const g of gastos) {
+    const p = claveMes(g.fecha);
+    if (!p || p.anio !== anio || (mes !== null && p.mes !== mes)) continue;
+    totales.gastos += Number(g.monto_usd) || 0;
+  }
+
+  totales.gananciaNeta = totales.gananciaBruta - totales.gastos;
+  return totales;
+};
+
 const App: React.FC = () => {
   const { theme, onToggleTheme } = useTheme();
   // Extrae el mensaje real del error que llega del proceso main (evita ver "Error invoking remote method").
@@ -144,6 +232,10 @@ const App: React.FC = () => {
   const [gastoEditar, setGastoEditar] = useState<Gasto | null>(null);
   const [filtroGastoCategoria, setFiltroGastoCategoria] = useState<string>('todas');
 
+  // ========== FILTROS DEL HISTÓRICO (Fase 10.2) ==========
+  const [filtroHistoricoAnio, setFiltroHistoricoAnio] = useState<string>('');
+  const [filtroHistoricoMes, setFiltroHistoricoMes] = useState<string>('todos');
+
   // ========== ESTADO PARA CONVERSIÓN (RECARGAS) ==========
   const [peers, setPeers] = useState<Peer[]>([]);
   const [isPeerModalOpen, setIsPeerModalOpen] = useState(false);
@@ -187,7 +279,7 @@ const App: React.FC = () => {
   const [inversorSeleccionado, setInversorSeleccionado] = useState<number | null>(null);
 
   // ========== PESTAÑA ACTIVA ==========
-  const [activeTab, setActiveTab] = useState<'productos' | 'monedas' | 'cuentas' | 'envios' | 'transacciones' | 'gastos' | 'conversion' | 'ventas' | 'dashboard' | 'calculadora' | 'inversores'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'productos' | 'monedas' | 'cuentas' | 'envios' | 'transacciones' | 'gastos' | 'historico' | 'conversion' | 'ventas' | 'dashboard' | 'calculadora' | 'inversores'>('dashboard');
 
   // ========== ESTADO DE CARGA (Fase 4.7: skeletons) ==========
   // Mientras dura la carga se pintan esqueletos en vez de ceros/tablas vacías,
@@ -1320,6 +1412,229 @@ const App: React.FC = () => {
     return Object.values(mapa).sort((a, b) => a.mes.localeCompare(b.mes));
   }, [importesPorMes, ventasPorMes]);
 
+  // ========== HISTÓRICO POR MES Y AÑO (Fase 10.2) ==========
+  const aniosDisponibles = useMemo(() => {
+    const set = new Set<number>();
+    for (const v of ventas) {
+      const p = claveMes(v.fecha);
+      if (p) set.add(p.anio);
+    }
+    for (const g of gastos) {
+      const p = claveMes(g.fecha);
+      if (p) set.add(p.anio);
+    }
+    return [...set].sort((a, b) => b - a);
+  }, [ventas, gastos]);
+
+  // El estado vacío significa "todavía no eligió": se muestra el año más
+  // reciente con datos. Si el usuario elige "Todos", se respeta.
+  const anioHistorico =
+    filtroHistoricoAnio === 'todos' ||
+    (filtroHistoricoAnio !== '' && aniosDisponibles.includes(Number(filtroHistoricoAnio)))
+      ? filtroHistoricoAnio
+      : aniosDisponibles[0] !== undefined
+        ? String(aniosDisponibles[0])
+        : 'todos';
+
+  const historicoMensual = useMemo<FilasHistorico[]>(() => {
+    const mapa = new Map<string, FilasHistorico>();
+
+    const obtener = (anio: number, mes: number): FilasHistorico => {
+      const clave = `${anio}-${String(mes).padStart(2, '0')}`;
+      const existente = mapa.get(clave);
+      if (existente) return existente;
+      const fila: FilasHistorico = {
+        clave,
+        anio,
+        mes,
+        etiqueta: anioHistorico === 'todos' ? `${MESES_CORTOS[mes - 1]} ${String(anio).slice(2)}` : MESES_CORTOS[mes - 1],
+        vendido: 0,
+        gananciaBruta: 0,
+        gastos: 0,
+        gananciaNeta: 0,
+        capitalRecuperado: 0,
+      };
+      mapa.set(clave, fila);
+      return fila;
+    };
+
+    for (const v of ventas) {
+      const p = claveMes(v.fecha);
+      if (!p) continue;
+      const fila = obtener(p.anio, p.mes);
+      fila.vendido += Number(v.total_usd) || 0;
+      fila.gananciaBruta += Number(v.ganancia_usd) || 0;
+      fila.capitalRecuperado += Number(v.costo_total_usd) || 0;
+    }
+    for (const g of gastos) {
+      const p = claveMes(g.fecha);
+      if (!p) continue;
+      obtener(p.anio, p.mes).gastos += Number(g.monto_usd) || 0;
+    }
+    for (const fila of mapa.values()) fila.gananciaNeta = fila.gananciaBruta - fila.gastos;
+
+    let filas: FilasHistorico[];
+    if (anioHistorico === 'todos') {
+      filas = [...mapa.values()].sort((a, b) => a.clave.localeCompare(b.clave));
+    } else {
+      const anio = Number(anioHistorico);
+      // Con un año elegido se muestran los 12 meses, incluso en cero: así se
+      // ven los huecos de la carga manual en vez de desaparecer de la tabla.
+      filas = MESES_CORTOS.map((_, i) => obtener(anio, i + 1));
+    }
+
+    if (filtroHistoricoMes !== 'todos') {
+      filas = filas.filter((f) => f.mes === Number(filtroHistoricoMes));
+    }
+    return filas;
+  }, [ventas, gastos, anioHistorico, filtroHistoricoMes]);
+
+  const totalesHistorico = useMemo<TotalesHistorico>(
+    () =>
+      historicoMensual.reduce(
+        (acc, f) => {
+          acc.vendido += f.vendido;
+          acc.gananciaBruta += f.gananciaBruta;
+          acc.gastos += f.gastos;
+          acc.gananciaNeta += f.gananciaNeta;
+          acc.capitalRecuperado += f.capitalRecuperado;
+          return acc;
+        },
+        { vendido: 0, gananciaBruta: 0, gastos: 0, gananciaNeta: 0, capitalRecuperado: 0 }
+      ),
+    [historicoMensual]
+  );
+
+  const comparativoHistorico = useMemo(() => {
+    if (anioHistorico === 'todos') return null;
+    const anio = Number(anioHistorico);
+    const mes = filtroHistoricoMes === 'todos' ? null : Number(filtroHistoricoMes);
+    return {
+      anio,
+      actual: totalesPeriodo(ventas, gastos, anio, mes),
+      anterior: totalesPeriodo(ventas, gastos, anio - 1, mes),
+    };
+  }, [ventas, gastos, anioHistorico, filtroHistoricoMes]);
+
+  const filasComparativo = useMemo(() => {
+    if (!comparativoHistorico) return [];
+    const { actual, anterior } = comparativoHistorico;
+    const fila = (etiqueta: string, a: number, b: number) => ({
+      etiqueta,
+      actual: a,
+      anterior: b,
+      diferencia: a - b,
+      porcentaje: b !== 0 ? ((a - b) / Math.abs(b)) * 100 : null,
+    });
+    return [
+      fila('Vendido', actual.vendido, anterior.vendido),
+      fila('Ganancia bruta', actual.gananciaBruta, anterior.gananciaBruta),
+      fila('Gastos', actual.gastos, anterior.gastos),
+      fila('Ganancia neta', actual.gananciaNeta, anterior.gananciaNeta),
+      fila('Capital recuperado', actual.capitalRecuperado, anterior.capitalRecuperado),
+    ];
+  }, [comparativoHistorico]);
+
+  const gastosCategoriaHistorico = useMemo(() => {
+    const mapa = new Map<string, number>();
+    for (const g of gastos) {
+      const p = claveMes(g.fecha);
+      if (!p) continue;
+      if (anioHistorico !== 'todos' && p.anio !== Number(anioHistorico)) continue;
+      if (filtroHistoricoMes !== 'todos' && p.mes !== Number(filtroHistoricoMes)) continue;
+      const categoria = g.categoria || 'Otros';
+      mapa.set(categoria, (mapa.get(categoria) || 0) + (Number(g.monto_usd) || 0));
+    }
+    const total = [...mapa.values()].reduce((s, v) => s + v, 0);
+    return [...mapa.entries()]
+      .map(([categoria, monto]) => ({
+        categoria,
+        monto,
+        porcentaje: total > 0 ? (monto / total) * 100 : 0,
+      }))
+      .sort((a, b) => b.monto - a.monto);
+  }, [gastos, anioHistorico, filtroHistoricoMes]);
+
+  const datosGraficoHistorico = useMemo(
+    () =>
+      historicoMensual.filter(
+        (f) => f.vendido !== 0 || f.gananciaBruta !== 0 || f.gastos !== 0 || f.capitalRecuperado !== 0
+      ),
+    [historicoMensual]
+  );
+
+  const etiquetaPeriodoHistorico =
+    anioHistorico === 'todos'
+      ? 'Todos los años'
+      : `${filtroHistoricoMes === 'todos' ? 'Año' : MESES_LARGOS[Number(filtroHistoricoMes) - 1]} ${anioHistorico}`;
+
+  const exportarHistoricoCSV = () => {
+    const escapar = (valor: unknown): string => {
+      const texto = valor === null || valor === undefined ? '' : String(valor);
+      return `"${texto.replace(/"/g, '""')}"`;
+    };
+    const num = (valor: unknown): string => (Math.round((Number(valor) || 0) * 100) / 100).toFixed(2);
+
+    const lineas: string[] = [];
+    lineas.push('HISTORICO - Mi App de Ventas');
+    lineas.push(`Periodo,${escapar(etiquetaPeriodoHistorico)}`);
+    lineas.push(`Generado,${escapar(new Date().toLocaleString('es-ES'))}`);
+    lineas.push('');
+
+    lineas.push('RESUMEN DEL PERIODO');
+    lineas.push('Concepto,USD');
+    lineas.push(`Vendido,${num(totalesHistorico.vendido)}`);
+    lineas.push(`Ganancia bruta,${num(totalesHistorico.gananciaBruta)}`);
+    lineas.push(`Gastos,${num(totalesHistorico.gastos)}`);
+    lineas.push(`Ganancia neta,${num(totalesHistorico.gananciaNeta)}`);
+    lineas.push(`Capital recuperado (costo vendido),${num(totalesHistorico.capitalRecuperado)}`);
+    lineas.push('');
+
+    lineas.push('MES A MES');
+    lineas.push('Mes,Vendido (USD),Ganancia bruta (USD),Gastos (USD),Ganancia neta (USD),Capital recuperado (USD)');
+    for (const f of historicoMensual) {
+      lineas.push(
+        [
+          escapar(f.etiqueta),
+          num(f.vendido),
+          num(f.gananciaBruta),
+          num(f.gastos),
+          num(f.gananciaNeta),
+          num(f.capitalRecuperado),
+        ].join(',')
+      );
+    }
+    lineas.push('');
+
+    lineas.push('GASTOS POR CATEGORIA');
+    lineas.push('Categoria,Monto (USD),% del gasto');
+    for (const c of gastosCategoriaHistorico) {
+      lineas.push([escapar(c.categoria), num(c.monto), num(c.porcentaje)].join(','));
+    }
+    lineas.push('');
+
+    if (comparativoHistorico) {
+      lineas.push('COMPARATIVO AÑO CONTRA AÑO');
+      lineas.push(`Metrica,${comparativoHistorico.anio},${comparativoHistorico.anio - 1},Diferencia`);
+      for (const f of filasComparativo) {
+        lineas.push(
+          [escapar(f.etiqueta), num(f.actual), num(f.anterior), num(f.diferencia)].join(',')
+        );
+      }
+    }
+
+    const csv = '\uFEFF' + lineas.join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const enlace = document.createElement('a');
+    enlace.href = url;
+    enlace.download = `historico_${anioHistorico}${filtroHistoricoMes !== 'todos' ? `_${filtroHistoricoMes}` : ''}.csv`;
+    document.body.appendChild(enlace);
+    enlace.click();
+    document.body.removeChild(enlace);
+    URL.revokeObjectURL(url);
+  };
+
   const exportarRespaldo = async () => {
     try {
       const res = await window.electronAPI.exportarRespaldo();
@@ -1501,6 +1816,9 @@ const App: React.FC = () => {
     } else if (activeTab === 'gastos') {
       fetchGastos();
       fetchEnvios();
+    } else if (activeTab === 'historico') {
+      cargarVentas();
+      fetchGastos();
     } else if (activeTab === 'conversion') {
       fetchPeers();
       fetchFlujosConversion();
@@ -1572,6 +1890,12 @@ const App: React.FC = () => {
                   <span className="inline-flex items-center gap-1.5">
                     <LayoutDashboard className="h-4 w-4" />
                     Dashboard
+                  </span>
+                </Tabs.Tab>
+                <Tabs.Tab id="historico">
+                  <span className="inline-flex items-center gap-1.5">
+                    <History className="h-4 w-4" />
+                    Histórico
                   </span>
                 </Tabs.Tab>
                 <Tabs.Tab id="productos">
@@ -2755,6 +3079,254 @@ const App: React.FC = () => {
                 </div>
               )}
             </Card>
+          </>
+        )}
+
+        {/* ========== PESTAÑA HISTÓRICO ========== */}
+        {activeTab === 'historico' && (
+          <>
+            <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
+              <div>
+                <h2 className="text-xl font-semibold">Histórico</h2>
+                <p className="text-sm text-foreground/70">{etiquetaPeriodoHistorico}</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Selector
+                  valor={filtroHistoricoMes}
+                  onChange={setFiltroHistoricoMes}
+                  opciones={[
+                    { valor: 'todos', etiqueta: 'Todos los meses' },
+                    ...MESES_LARGOS.map((m, i) => ({
+                      valor: String(i + 1),
+                      etiqueta: m,
+                    })),
+                  ]}
+                  fullWidth={false}
+                  variant="secondary"
+                />
+                <Selector
+                  valor={anioHistorico}
+                  onChange={setFiltroHistoricoAnio}
+                  opciones={[
+                    { valor: 'todos', etiqueta: 'Todos los años' },
+                    ...aniosDisponibles.map((a) => ({
+                      valor: String(a),
+                      etiqueta: String(a),
+                    })),
+                  ]}
+                  fullWidth={false}
+                  variant="secondary"
+                />
+                <Button size="sm" variant="secondary" onClick={exportarHistoricoCSV}>
+                  Exportar CSV
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3 mb-4">
+              <Card className="p-4">
+                <p className="text-xs text-muted">Vendido (USD)</p>
+                <p className="text-2xl font-semibold text-blue-600 dark:text-blue-400">
+                  ${totalesHistorico.vendido.toFixed(2)}
+                </p>
+              </Card>
+              <Card className="p-4">
+                <p className="text-xs text-muted">Ganancia bruta (USD)</p>
+                <p className="text-2xl font-semibold text-green-600 dark:text-green-400">
+                  ${totalesHistorico.gananciaBruta.toFixed(2)}
+                </p>
+              </Card>
+              <Card className="p-4">
+                <p className="text-xs text-muted">Gastos (USD)</p>
+                <p className="text-2xl font-semibold text-red-600 dark:text-red-400">
+                  ${totalesHistorico.gastos.toFixed(2)}
+                </p>
+              </Card>
+              <Card className="p-4">
+                <p className="text-xs text-muted">Ganancia neta (USD)</p>
+                <p
+                  className={`text-2xl font-semibold ${
+                    totalesHistorico.gananciaNeta >= 0
+                      ? 'text-green-600 dark:text-green-400'
+                      : 'text-red-600 dark:text-red-400'
+                  }`}
+                >
+                  ${totalesHistorico.gananciaNeta.toFixed(2)}
+                </p>
+                <p className="text-xs text-muted mt-1">Ganancia bruta − gastos operativos</p>
+              </Card>
+              <Card className="p-4">
+                <p className="text-xs text-muted">Capital recuperado (USD)</p>
+                <p className="text-2xl font-semibold text-amber-600 dark:text-amber-400">
+                  ${totalesHistorico.capitalRecuperado.toFixed(2)}
+                </p>
+                <p className="text-xs text-muted mt-1">Costo FIFO de lo vendido</p>
+              </Card>
+            </div>
+
+            <Card className="p-4 mb-4">
+              <h3 className="text-lg font-semibold mb-1">Evolución mensual (USD)</h3>
+              <p className="text-sm text-foreground/70 mb-4">
+                Vendido, ganancia bruta y gastos del período elegido.
+              </p>
+              {datosGraficoHistorico.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={datosGraficoHistorico}>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                    <XAxis dataKey="etiqueta" tick={{ fontSize: 12 }} />
+                    <YAxis tick={{ fontSize: 12 }} />
+                    <Tooltip contentStyle={TOOLTIP_ESTILO} />
+                    <Legend />
+                    <Bar dataKey="vendido" name="Vendido" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="gananciaBruta" name="Ganancia bruta" fill="#16a34a" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="gastos" name="Gastos" fill="#dc2626" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <EmptyState className="py-12 text-center">
+                  Sin movimientos en el período elegido
+                </EmptyState>
+              )}
+            </Card>
+
+            <Card className="p-4 mb-4">
+              <h3 className="text-lg font-semibold mb-1">Mes a mes</h3>
+              <p className="text-sm text-foreground/70 mb-3">
+                Ventas y ganancia por fecha de venta; gastos por fecha de pago. Capital recuperado =
+                costo FIFO de lo vendido.
+              </p>
+              <Table aria-label="Histórico mes a mes">
+                <Table.Content>
+                  <Table.Header>
+                    <Table.Column isRowHeader>Mes</Table.Column>
+                    <Table.Column>Vendido (USD)</Table.Column>
+                    <Table.Column>Ganancia bruta (USD)</Table.Column>
+                    <Table.Column>Gastos (USD)</Table.Column>
+                    <Table.Column>Ganancia neta (USD)</Table.Column>
+                    <Table.Column>Capital recuperado (USD)</Table.Column>
+                  </Table.Header>
+                  <Table.Body>
+                    {historicoMensual.length === 0 && (
+                      <Table.Row>
+                        <Table.Cell colSpan={6}>
+                          <EmptyState className="py-12 text-center">
+                            Sin datos para el período elegido
+                          </EmptyState>
+                        </Table.Cell>
+                      </Table.Row>
+                    )}
+                    {historicoMensual.map((f) => (
+                      <Table.Row key={f.clave}>
+                        <Table.Cell className="font-medium">{f.etiqueta}</Table.Cell>
+                        <Table.Cell>${f.vendido.toFixed(2)}</Table.Cell>
+                        <Table.Cell className="text-green-600 dark:text-green-400">
+                          ${f.gananciaBruta.toFixed(2)}
+                        </Table.Cell>
+                        <Table.Cell className="text-red-600 dark:text-red-400">
+                          ${f.gastos.toFixed(2)}
+                        </Table.Cell>
+                        <Table.Cell
+                          className={`font-semibold ${
+                            f.gananciaNeta >= 0
+                              ? 'text-green-700 dark:text-green-400'
+                              : 'text-red-700 dark:text-red-400'
+                          }`}
+                        >
+                          ${f.gananciaNeta.toFixed(2)}
+                        </Table.Cell>
+                        <Table.Cell>${f.capitalRecuperado.toFixed(2)}</Table.Cell>
+                      </Table.Row>
+                    ))}
+                  </Table.Body>
+                </Table.Content>
+              </Table>
+            </Card>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <Card className="p-4">
+                <h3 className="text-lg font-semibold mb-1">Gastos por categoría</h3>
+                <p className="text-sm text-foreground/70 mb-3">{etiquetaPeriodoHistorico}</p>
+                {gastosCategoriaHistorico.length === 0 ? (
+                  <EmptyState className="py-12 text-center">Sin gastos en el período</EmptyState>
+                ) : (
+                  <Table aria-label="Gastos por categoría">
+                    <Table.Content>
+                      <Table.Header>
+                        <Table.Column isRowHeader>Categoría</Table.Column>
+                        <Table.Column>Monto (USD)</Table.Column>
+                        <Table.Column>% del gasto</Table.Column>
+                      </Table.Header>
+                      <Table.Body>
+                        {gastosCategoriaHistorico.map((c) => (
+                          <Table.Row key={c.categoria}>
+                            <Table.Cell>{c.categoria}</Table.Cell>
+                            <Table.Cell>${c.monto.toFixed(2)}</Table.Cell>
+                            <Table.Cell>
+                              <div className="flex items-center gap-2">
+                                <div className="h-1.5 w-24 overflow-hidden rounded-full bg-surface-secondary">
+                                  <div
+                                    className="h-full rounded-full bg-blue-600 dark:bg-blue-400"
+                                    style={{ width: `${Math.min(100, c.porcentaje)}%` }}
+                                  />
+                                </div>
+                                <span>{c.porcentaje.toFixed(1)}%</span>
+                              </div>
+                            </Table.Cell>
+                          </Table.Row>
+                        ))}
+                      </Table.Body>
+                    </Table.Content>
+                  </Table>
+                )}
+              </Card>
+
+              <Card className="p-4">
+                <h3 className="text-lg font-semibold mb-1">Comparación año contra año</h3>
+                {comparativoHistorico ? (
+                  <>
+                    <p className="text-sm text-foreground/70 mb-3">
+                      {filtroHistoricoMes === 'todos'
+                        ? `Año ${comparativoHistorico.anio} vs ${comparativoHistorico.anio - 1}`
+                        : `${MESES_LARGOS[Number(filtroHistoricoMes) - 1]} ${comparativoHistorico.anio} vs ${comparativoHistorico.anio - 1}`}
+                    </p>
+                    <Table aria-label="Comparación año contra año">
+                      <Table.Content>
+                        <Table.Header>
+                          <Table.Column isRowHeader>Métrica</Table.Column>
+                          <Table.Column>{comparativoHistorico.anio}</Table.Column>
+                          <Table.Column>{comparativoHistorico.anio - 1}</Table.Column>
+                          <Table.Column>Variación</Table.Column>
+                        </Table.Header>
+                        <Table.Body>
+                          {filasComparativo.map((f) => (
+                            <Table.Row key={f.etiqueta}>
+                              <Table.Cell>{f.etiqueta}</Table.Cell>
+                              <Table.Cell>${f.actual.toFixed(2)}</Table.Cell>
+                              <Table.Cell>${f.anterior.toFixed(2)}</Table.Cell>
+                              <Table.Cell>
+                                <span>
+                                  {f.diferencia >= 0 ? '+' : '−'}${Math.abs(f.diferencia).toFixed(2)}
+                                </span>
+                                <span className="text-muted ml-1">
+                                  ({f.porcentaje === null
+                                    ? '—'
+                                    : `${f.porcentaje >= 0 ? '+' : ''}${f.porcentaje.toFixed(1)}%`}
+                                  )
+                                </span>
+                              </Table.Cell>
+                            </Table.Row>
+                          ))}
+                        </Table.Body>
+                      </Table.Content>
+                    </Table>
+                  </>
+                ) : (
+                  <EmptyState className="py-12 text-center">
+                    Elegí un año concreto para comparar contra el anterior
+                  </EmptyState>
+                )}
+              </Card>
+            </div>
           </>
         )}
 
