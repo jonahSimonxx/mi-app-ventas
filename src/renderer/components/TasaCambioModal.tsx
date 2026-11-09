@@ -129,8 +129,7 @@ const TasaCambioModal: React.FC<TasaCambioModalProps> = ({ isOpen, onClose, onCh
             así que las clases del grid van en un <div> interno. Este modal además no
             tiene `Modal.Footer`: sus botones viven dentro del propio formulario. */}
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-          <div className="grid grid-cols-4 gap-3 mb-6 items-end">
-          <div>
+          <div className="mb-4 max-w-xs">
             <label className="block text-sm font-medium mb-1">Fecha</label>
             <CampoFecha
               valor={form.fecha}
@@ -140,45 +139,62 @@ const TasaCambioModal: React.FC<TasaCambioModalProps> = ({ isOpen, onClose, onCh
               required
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">USD → CUP</label>
-            <NumInput
-              step="0.0001"
-              value={form.usd_to_cup}
-              onChange={(n) => setForm({ ...form, usd_to_cup: n })}
-              sufijo="CUP"
-              className="w-full"
-              required
-            />
+
+          {/* Cada moneda va en su propia fila: antes los cuatro campos compartían
+              un grid de 4 columnas y las tasas quedaban pegadas entre sí. */}
+          <div className="mb-6">
+            <p className="text-sm font-medium mb-2">Tasas por moneda</p>
+            <div className="space-y-3">
+              <div className="flex flex-col gap-2 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-medium">USD → CUP</p>
+                  <p className="text-xs text-muted">Obligatoria</p>
+                </div>
+                <NumInput
+                  step="0.0001"
+                  value={form.usd_to_cup}
+                  onChange={(n) => setForm({ ...form, usd_to_cup: n })}
+                  sufijo="CUP"
+                  className="w-full sm:w-48"
+                  required
+                />
+              </div>
+              <div className="flex flex-col gap-2 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-medium">EUR → CUP</p>
+                  <p className="text-xs text-muted">Opcional</p>
+                </div>
+                <NumInput
+                  step="0.0001"
+                  value={form.eur_to_cup}
+                  onChange={(n) => setForm({ ...form, eur_to_cup: n === 0 ? '' : n })}
+                  sufijo="CUP"
+                  className="w-full sm:w-48"
+                />
+              </div>
+              <div className="flex flex-col gap-2 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-medium">GBP → CUP</p>
+                  <p className="text-xs text-muted">Opcional</p>
+                </div>
+                <NumInput
+                  step="0.0001"
+                  value={form.gbp_to_cup}
+                  onChange={(n) => setForm({ ...form, gbp_to_cup: n === 0 ? '' : n })}
+                  sufijo="CUP"
+                  className="w-full sm:w-48"
+                />
+              </div>
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">EUR → CUP</label>
-            <NumInput
-              step="0.0001"
-              value={form.eur_to_cup}
-              onChange={(n) => setForm({ ...form, eur_to_cup: n === 0 ? '' : n })}
-              sufijo="CUP"
-              className="w-full"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">GBP → CUP</label>
-            <NumInput
-              step="0.0001"
-              value={form.gbp_to_cup}
-              onChange={(n) => setForm({ ...form, gbp_to_cup: n === 0 ? '' : n })}
-              sufijo="CUP"
-              className="w-full"
-            />
-          </div>
-          <div className="col-span-4 flex gap-2">
+
+          <div className="flex flex-wrap gap-2">
             <Button type="submit" className="bg-success text-success-foreground">
               + Añadir tasa
             </Button>
             <Button type="button" variant="primary" onPress={handleImportarExcel}>
               Importar desde Excel
             </Button>
-          </div>
           </div>
         </form>
 
